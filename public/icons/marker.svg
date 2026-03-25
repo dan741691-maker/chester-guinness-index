@@ -1,0 +1,18 @@
+<svg width="48" height="56" viewBox="0 0 48 56" xmlns="http://www.w3.org/2000/svg">
+  <path
+    d="M24 2 C12.954 2 4 10.954 4 22 C4 33 24 54 24 54 C24 54 44 33 44 22 C44 10.954 35.046 2 24 2Z"
+    fill="#0a0a0a"
+    stroke="#c9a84c"
+    stroke-width="2.5"
+  />
+  <circle cx="24" cy="22" r="12" fill="#c9a84c" opacity="0.15"/>
+  <text
+    x="24"
+    y="27"
+    text-anchor="middle"
+    font-family="Georgia, serif"
+    font-size="12"
+    font-weight="700"
+    fill="#c9a84c"
+  >🍺</text>
+</svg>

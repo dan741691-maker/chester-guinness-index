@@ -1,0 +1,43 @@
+import type { Database } from './database';
+
+export type Pub = Database['public']['Tables']['pubs']['Row'];
+export type PubInsert = Database['public']['Tables']['pubs']['Insert'];
+export type PubUpdate = Database['public']['Tables']['pubs']['Update'];
+
+export type Review = Database['public']['Tables']['reviews']['Row'];
+export type ReviewInsert = Database['public']['Tables']['reviews']['Insert'];
+export type ReviewUpdate = Database['public']['Tables']['reviews']['Update'];
+
+export type PubImage = Database['public']['Tables']['pub_images']['Row'];
+export type SocialPost = Database['public']['Tables']['social_posts']['Row'];
+
+export interface PubWithReviews extends Pub {
+  reviews: Review[];
+  images: PubImage[];
+}
+
+export interface PubWithLatestImage extends Pub {
+  latest_review_image_url: string | null;
+}
+
+export interface RatingTier {
+  label: string;
+  min: number;
+  max: number;
+  color: string;
+  bgClass: string;
+  textClass: string;
+}
+
+export interface FilterState {
+  area: string;
+  minScore: number;
+  maxPrice: number | null;
+  search: string;
+}
+
+export interface ScoreCategory {
+  key: keyof Pick<Review, 'pub_look_cleanliness' | 'staff' | 'glass_pour' | 'taste_quality' | 'price_score'>;
+  label: string;
+  icon: string;
+}

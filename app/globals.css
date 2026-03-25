@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+    --background: 0 0% 4%;
+    --foreground: 40 30% 93%;
+    --card: 0 0% 7%;
+    --card-foreground: 40 30% 93%;
+    --border: 0 0% 17%;
+    --input: 0 0% 11%;
+    --primary: 40 52% 55%;
+    --primary-foreground: 0 0% 4%;
+    --muted: 0 0% 11%;
+    --muted-foreground: 40 10% 65%;
+    --accent: 0 0% 13%;
+    --accent-foreground: 40 30% 93%;
+    --ring: 40 52% 55%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #080808;
+    color: #f5f0e8;
+    font-family: system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: #c9a84c40;
+    color: #f5f0e8;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0a0a;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2a2a2a;
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a3a3a;
+  }
+
+  /* Range input */
+  input[type='range'] {
+    -webkit-appearance: none;
+    cursor: pointer;
+  }
+  input[type='range']::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #c9a84c;
+    border: 2px solid #080808;
+    box-shadow: 0 0 0 2px #c9a84c40;
+  }
+  input[type='range']::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #c9a84c;
+    border: 2px solid #080808;
+  }
+
+  /* Google Maps info window overrides */
+  .gm-style .gm-style-iw-c {
+    background: transparent !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+  }
+  .gm-style .gm-style-iw-d {
+    overflow: hidden !important;
+  }
+  .gm-style .gm-style-iw-t::after {
+    display: none !important;
+  }
+  .gm-style .gm-ui-hover-effect {
+    display: none !important;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .gold-gradient {
+    background: linear-gradient(135deg, #e8c875 0%, #c9a84c 50%, #a07830 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .surface-gradient {
+    background: linear-gradient(to bottom, #111111, #080808);
+  }
+}

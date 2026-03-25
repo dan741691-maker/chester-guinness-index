@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS pubs (
   lng                 numeric(10,7) NOT NULL DEFAULT 0,
   guinness_price_gbp  numeric(5,2),
   hero_image_url      text,
-  current_score       integer NOT NULL DEFAULT 0,
+  current_score       numeric(4,1) NOT NULL DEFAULT 0,
   current_rating_tier text,
   description         text,
   is_active           boolean NOT NULL DEFAULT true,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS pubs (
 ALTER TABLE pubs ADD COLUMN IF NOT EXISTS postcode            text;
 ALTER TABLE pubs ADD COLUMN IF NOT EXISTS guinness_price_gbp  numeric(5,2);
 ALTER TABLE pubs ADD COLUMN IF NOT EXISTS hero_image_url      text;
-ALTER TABLE pubs ADD COLUMN IF NOT EXISTS current_score       integer NOT NULL DEFAULT 0;
+ALTER TABLE pubs ADD COLUMN IF NOT EXISTS current_score       numeric(4,1) NOT NULL DEFAULT 0;
 ALTER TABLE pubs ADD COLUMN IF NOT EXISTS current_rating_tier text;
 ALTER TABLE pubs ADD COLUMN IF NOT EXISTS description         text;
 ALTER TABLE pubs ADD COLUMN IF NOT EXISTS is_active           boolean NOT NULL DEFAULT true;
@@ -32,12 +32,14 @@ ALTER TABLE pubs ADD COLUMN IF NOT EXISTS updated_at          timestamptz NOT NU
 CREATE TABLE IF NOT EXISTS reviews (
   id                    uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
   pub_id                uuid NOT NULL REFERENCES pubs(id) ON DELETE CASCADE,
-  pub_look_cleanliness  integer NOT NULL DEFAULT 5 CHECK (pub_look_cleanliness BETWEEN 0 AND 10),
-  staff                 integer NOT NULL DEFAULT 5 CHECK (staff BETWEEN 0 AND 10),
-  glass_pour            integer NOT NULL DEFAULT 5 CHECK (glass_pour BETWEEN 0 AND 10),
-  taste_quality         integer NOT NULL DEFAULT 5 CHECK (taste_quality BETWEEN 0 AND 10),
-  price_score           integer NOT NULL DEFAULT 5 CHECK (price_score BETWEEN 0 AND 10),
-  total_score           integer NOT NULL DEFAULT 0,
+  pub_look_cleanliness  numeric(4,1) NOT NULL DEFAULT 5.0 CHECK (pub_look_cleanliness BETWEEN 0.0 AND 10.0),
+  staff                 numeric(4,1) NOT NULL DEFAULT 5.0 CHECK (staff BETWEEN 0.0 AND 10.0),
+  glass_pour            numeric(4,1) NOT NULL DEFAULT 5.0 CHECK (glass_pour BETWEEN 0.0 AND 10.0),
+  taste_quality         numeric(4,1) NOT NULL DEFAULT 5.0 CHECK (taste_quality BETWEEN 0.0 AND 10.0),
+  price_score           numeric(4,1) NOT NULL DEFAULT 5.0 CHECK (price_score BETWEEN 0.0 AND 10.0),
+  total_score           numeric(4,1) GENERATED ALWAYS AS (
+                          pub_look_cleanliness + staff + glass_pour + taste_quality + price_score
+                        ) STORED,
   guinness_price_gbp    numeric(5,2),
   notes                 text,
   verdict               text,
@@ -48,7 +50,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   created_at            timestamptz NOT NULL DEFAULT now()
 );
 
-ALTER TABLE reviews ADD COLUMN IF NOT EXISTS total_score          integer NOT NULL DEFAULT 0;
+-- total_score is now a GENERATED ALWAYS AS column; no manual ADD needed
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS guinness_price_gbp   numeric(5,2);
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS notes                text;
 ALTER TABLE reviews ADD COLUMN IF NOT EXISTS verdict              text;
@@ -90,28 +92,17 @@ CREATE INDEX IF NOT EXISTS idx_social_review_id   ON social_posts(review_id);
 CREATE INDEX IF NOT EXISTS idx_social_pub_id      ON social_posts(pub_id);
 CREATE INDEX IF NOT EXISTS idx_social_created     ON social_posts(created_at DESC);
 
-CREATE OR REPLACE FUNCTION calculate_review_total_score()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.total_score := NEW.pub_look_cleanliness
-                   + NEW.staff
-                   + NEW.glass_pour
-                   + NEW.taste_quality
-                   + NEW.price_score;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
+-- total_score is GENERATED ALWAYS AS (sum of category scores) STORED.
+-- No trigger needed to compute it; drop any legacy one if present.
 DROP TRIGGER IF EXISTS set_review_total_score ON reviews;
-CREATE TRIGGER set_review_total_score
-  BEFORE INSERT OR UPDATE ON reviews
-  FOR EACH ROW EXECUTE FUNCTION calculate_review_total_score();
+DROP FUNCTION IF EXISTS calculate_review_total_score();
 
 CREATE OR REPLACE FUNCTION sync_pub_score()
 RETURNS TRIGGER AS $$
 DECLARE
-  v_pub_id UUID;
-  v_latest RECORD;
+  v_pub_id      UUID;
+  v_total_score NUMERIC(4,1);
+  v_latest      RECORD;
 BEGIN
   IF TG_OP = 'DELETE' THEN
     v_pub_id := OLD.pub_id;

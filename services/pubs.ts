@@ -42,7 +42,7 @@ export async function getPubBySlug(slug: string): Promise<PubWithReviews | null>
     .from('pubs')
     .select(`
       *,
-      reviews(*),
+      reviews(*, reviewer:reviewer_profiles(display_name, avatar_url, accent_color)),
       images:pub_images(*)
     `)
     .eq('slug', slug)

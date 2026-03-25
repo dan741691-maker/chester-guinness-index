@@ -34,7 +34,17 @@ export async function POST(request: Request) {
 
   try {
     const raw = await request.json();
-    const body = sanitiseScores(raw);
+    const body = sanitiseScores(raw) as Record<string, unknown>;
+
+    // Auto-attach the reviewer_id for whoever is logged in
+    const supabase = await createClient();
+    const { data: profile } = await supabase
+      .from('reviewer_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (profile) body.reviewer_id = (profile as { id: string }).id;
+
     const admin = await createAdminClient();
     const { data, error } = await admin.from('reviews').insert(body).select().single();
 

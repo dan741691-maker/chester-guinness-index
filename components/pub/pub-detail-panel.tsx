@@ -7,9 +7,10 @@ import { X, MapPin, PoundSterling, Calendar } from 'lucide-react';
 import { ScoreRing, ScoreBreakdown } from './score-display';
 import { RatingBadge } from './rating-badge';
 import { usePubDetail } from '@/hooks/use-pub-detail';
+import { ReviewerAvatar } from './reviewer-avatar';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import type { Pub, Review } from '@/types';
+import type { Pub, ReviewWithReviewer } from '@/types';
 
 interface PubDetailPanelProps {
   pub: Pub | null;
@@ -79,7 +80,7 @@ function PanelContent({
   onClose,
 }: {
   pub: Pub;
-  review: Review | null;
+  review: ReviewWithReviewer | null;
   loading: boolean;
   onClose: () => void;
 }) {
@@ -203,10 +204,23 @@ function PanelContent({
 
           {/* Verdict */}
           {review?.verdict && (
-            <div className="rounded-xl bg-gold/[0.06] border border-gold/15 px-4 py-3.5">
-              <p className="text-[10px] uppercase tracking-widest text-gold/50 mb-2">
-                Verdict
-              </p>
+            <div
+              className="rounded-xl px-4 py-3.5 border"
+              style={{
+                backgroundColor: review.reviewer
+                  ? `${review.reviewer.accent_color}0d`
+                  : 'rgba(201,168,76,0.06)',
+                borderColor: review.reviewer
+                  ? `${review.reviewer.accent_color}25`
+                  : 'rgba(201,168,76,0.15)',
+              }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] uppercase tracking-widest text-gold/50">Verdict</p>
+                {review.reviewer?.avatar_url && (
+                  <ReviewerAvatar reviewer={review.reviewer} size={24} />
+                )}
+              </div>
               <p className="font-serif italic text-cream text-[0.9rem] leading-relaxed">
                 &ldquo;{review.verdict}&rdquo;
               </p>

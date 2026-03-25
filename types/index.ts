@@ -10,9 +10,22 @@ export type ReviewUpdate = Database['public']['Tables']['reviews']['Update'];
 
 export type PubImage = Database['public']['Tables']['pub_images']['Row'];
 export type SocialPost = Database['public']['Tables']['social_posts']['Row'];
+export type ReviewerProfile = Database['public']['Tables']['reviewer_profiles']['Row'];
+
+/** Slim reviewer data joined onto a review query */
+export interface ReviewerSummary {
+  display_name: string;
+  avatar_url: string | null;
+  accent_color: string;
+}
+
+/** Review with the reviewer_profiles join included */
+export interface ReviewWithReviewer extends Review {
+  reviewer: ReviewerSummary | null;
+}
 
 export interface PubWithReviews extends Pub {
-  reviews: Review[];
+  reviews: ReviewWithReviewer[];
   images: PubImage[];
 }
 

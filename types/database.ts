@@ -76,6 +76,7 @@ export interface Database {
           image_url: string | null;
           visited_at: string | null;
           created_at: string;
+          reviewer_id: string | null;
         };
         Insert: {
           id?: string;
@@ -93,6 +94,7 @@ export interface Database {
           image_url?: string | null;
           visited_at?: string | null;
           created_at?: string;
+          reviewer_id?: string | null;
         };
         Update: {
           pub_id?: string;
@@ -108,6 +110,7 @@ export interface Database {
           is_published?: boolean;
           image_url?: string | null;
           visited_at?: string | null;
+          reviewer_id?: string | null;
         };
       };
       pub_images: {
@@ -129,6 +132,36 @@ export interface Database {
           pub_id?: string;
           image_url?: string;
           caption?: string | null;
+        };
+      };
+      reviewer_profiles: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          email: string;
+          display_name: string;
+          avatar_url: string | null;
+          accent_color: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          email: string;
+          display_name?: string;
+          avatar_url?: string | null;
+          accent_color?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string | null;
+          email?: string;
+          display_name?: string;
+          avatar_url?: string | null;
+          accent_color?: string;
+          updated_at?: string;
         };
       };
       social_posts: {

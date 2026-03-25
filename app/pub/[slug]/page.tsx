@@ -10,6 +10,7 @@ import { ReviewHistory } from '@/components/pub/review-history';
 import { PhotoGallery } from '@/components/pub/photo-gallery';
 import { PubHeroImage } from '@/components/pub/pub-hero-image';
 import { ReviewImage } from '@/components/pub/review-image';
+import { ReviewerAvatar } from '@/components/pub/reviewer-avatar';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Separator } from '@/components/ui/separator';
@@ -157,6 +158,14 @@ export default async function PubPage({ params }: Props) {
                   )}
                   {latestReview.image_url && (
                     <ReviewImage src={latestReview.image_url} />
+                  )}
+                  {latestReview.reviewer?.avatar_url && (
+                    <div className="flex items-center gap-2 pt-2">
+                      <ReviewerAvatar reviewer={latestReview.reviewer} size={28} />
+                      <span className="text-[10px] uppercase tracking-widest text-cream-muted/30">
+                        {latestReview.reviewer.display_name}
+                      </span>
+                    </div>
                   )}
                 </div>
               ) : (

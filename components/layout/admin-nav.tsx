@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MapPin, Star, Share2, LogOut, Globe } from 'lucide-react';
+import { LayoutDashboard, MapPin, Star, Share2, LogOut, Globe, UserCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ const navItems = [
   { href: '/admin/pubs', label: 'Pubs', icon: MapPin, exact: false },
   { href: '/admin/reviews', label: 'Reviews', icon: Star, exact: false },
   { href: '/admin/social', label: 'Social', icon: Share2, exact: false },
+  { href: '/admin/profile', label: 'Profile', icon: UserCircle, exact: false },
 ];
 
 export function AdminNav() {

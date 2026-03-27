@@ -85,13 +85,10 @@ function PanelContent({
   onClose: () => void;
 }) {
   const [heroError, setHeroError] = useState(false);
-  const [reviewImgError, setReviewImgError] = useState(false);
+  const [pintImgError, setPintImgError] = useState(false);
 
-  // Image priority: pub cover → latest review image → placeholder
-  const heroSrc = !heroError
-    ? (pub.hero_image_url ?? (review?.image_url && !reviewImgError ? review.image_url : null))
-    : (!reviewImgError && review?.image_url ? review.image_url : null);
-  const heroIsReviewImage = !pub.hero_image_url && !!heroSrc && heroSrc === review?.image_url;
+  // Hero = venue/pub photo only. Review/pint photo appears in the content section below.
+  const heroSrc = !heroError ? (pub.hero_image_url ?? null) : null;
 
   return (
     <div className="flex flex-col h-full">
@@ -120,7 +117,7 @@ function PanelContent({
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto overscroll-contain">
-        {/* Hero image — pub cover → latest review image → placeholder */}
+        {/* Hero image — venue photo only */}
         <div className="relative h-44 mx-4 rounded-xl overflow-hidden bg-gradient-to-br from-surface-2 to-surface-3">
           {heroSrc ? (
             <>
@@ -130,17 +127,9 @@ function PanelContent({
                 fill
                 sizes="(max-width: 768px) 100vw, 360px"
                 className="object-cover"
-                onError={() => {
-                  if (heroSrc === pub.hero_image_url) setHeroError(true);
-                  else setReviewImgError(true);
-                }}
+                onError={() => setHeroError(true)}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-              {heroIsReviewImage && (
-                <div className="absolute bottom-2 right-2 text-[9px] uppercase tracking-widest text-cream/30 bg-black/40 rounded px-1.5 py-0.5">
-                  Review photo
-                </div>
-              )}
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -239,16 +228,16 @@ function PanelContent({
             </div>
           )}
 
-          {/* Review image — only shown here when not already used as hero */}
-          {review?.image_url && !reviewImgError && !heroIsReviewImage && (
+          {/* Pint photo — shown in review content, separate from the pub hero above */}
+          {review?.image_url && !pintImgError && (
             <div className="relative h-36 rounded-xl overflow-hidden">
               <Image
                 src={review.image_url}
-                alt="Review photo"
+                alt="Pint photo"
                 fill
                 sizes="(max-width: 768px) 100vw, 360px"
                 className="object-cover"
-                onError={() => setReviewImgError(true)}
+                onError={() => setPintImgError(true)}
               />
             </div>
           )}

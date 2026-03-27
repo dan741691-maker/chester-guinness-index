@@ -17,16 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { slugify } from '@/lib/utils';
-import { CHESTER_AREAS } from '@/lib/constants';
 import type { Pub } from '@/types';
 
 interface PubFormProps {
@@ -59,6 +51,10 @@ interface PlaceDetails {
   lat?: number | null;
   lng?: number | null;
   postcode?: string | null;
+  sublocality?: string | null;
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
   googleUrl?: string | null;
   photoRef?: string | null;
   error?: string;
@@ -143,14 +139,6 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
 
   // ---- Google autofill ----
 
-  function inferArea(address: string): string | null {
-    const lower = address.toLowerCase();
-    for (const area of CHESTER_AREAS) {
-      if (lower.includes(area.toLowerCase())) return area;
-    }
-    return null;
-  }
-
   function applyAutofill(details: PlaceDetails) {
     const filled: string[] = [];
     const next: Partial<typeof form> = {};
@@ -172,14 +160,15 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
       filled.push('longitude');
     }
     if (details.postcode) {
-      next.postcode = details.postcode.toUpperCase();
+      next.postcode = details.postcode;
       filled.push('postcode');
     }
 
-    const addr = details.formattedAddress || details.fullFormattedAddress || '';
-    const inferred = inferArea(addr);
-    if (inferred) {
-      next.area = inferred;
+    // Populate area: prefer sublocality/neighbourhood (e.g. Hoole, Temple Bar)
+    // over city (e.g. Chester, Dublin) — works for both local and international pubs
+    const inferredArea = details.sublocality || details.city;
+    if (inferredArea) {
+      next.area = inferredArea;
       filled.push('area');
     }
 
@@ -221,7 +210,7 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
     setAutofillMsg(null);
     try {
       const res = await fetch(
-        `/api/admin/google-place?type=search&q=${encodeURIComponent(q + ' chester')}`,
+        `/api/admin/google-place?type=search&q=${encodeURIComponent(q)}`,
       );
       const json = await res.json();
       if (!res.ok) {
@@ -273,54 +262,38 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
     setSearchLoading(true);
 
     try {
-      // Extract coordinates from URL
-      const coordMatch = url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
-      const qMatch = url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
-      const lat = coordMatch
-        ? parseFloat(coordMatch[1])
-        : qMatch
-          ? parseFloat(qMatch[1])
-          : null;
-      const lng = coordMatch
-        ? parseFloat(coordMatch[2])
-        : qMatch
-          ? parseFloat(qMatch[2])
-          : null;
+      // Delegate all URL resolution to the server — handles shortened share links
+      // (share.google/..., maps.app.goo.gl/..., goo.gl/...) and full Maps URLs alike.
+      const res = await fetch(
+        `/api/admin/google-place?type=resolve-url&url=${encodeURIComponent(url)}`,
+      );
+      const json = await res.json();
 
-      // Try to extract place name from URL path
-      const placeMatch = url.match(/\/place\/([^/@?]+)/);
-      const placeName = placeMatch
-        ? decodeURIComponent(placeMatch[1].replace(/\+/g, ' '))
-        : null;
-
-      if (placeName) {
-        // Use Places API to get full details via name search
-        const res = await fetch(
-          `/api/admin/google-place?type=search&q=${encodeURIComponent(placeName + ' chester')}`,
-        );
-        const json = await res.json();
-        if (res.ok && json.results?.length) {
-          await applyPlaceDetails(json.results[0].placeId);
-          return;
-        }
+      if (!res.ok) {
+        setAutofillMsg({
+          type: 'error',
+          text: json.hint ?? json.error ?? 'Could not resolve this link. Try searching by pub name instead.',
+        });
+        return;
       }
 
-      if (lat !== null && lng !== null) {
-        // Coords-only fallback
-        setForm((f) => ({ ...f, lat: String(lat), lng: String(lng) }));
+      // Server returned full place details → apply autofill
+      if (json.name) {
+        applyAutofill(json as PlaceDetails);
+        return;
+      }
+
+      // Server returned coords only
+      if (json.lat != null && json.lng != null) {
+        setForm((f) => ({ ...f, lat: String(json.lat), lng: String(json.lng) }));
         setGoogleUrl('');
         setAutofillMsg({
           type: 'success',
-          text: `Coordinates filled: ${lat.toFixed(6)}, ${lng.toFixed(6)}. Fill remaining fields manually.`,
-        });
-      } else {
-        setAutofillMsg({
-          type: 'error',
-          text: 'Could not extract location from this link. Try the full Google Maps URL (not a shortened link).',
+          text: `Coordinates filled: ${(json.lat as number).toFixed(6)}, ${(json.lng as number).toFixed(6)}. Fill remaining fields manually.`,
         });
       }
     } catch {
-      setAutofillMsg({ type: 'error', text: 'Failed to parse link.' });
+      setAutofillMsg({ type: 'error', text: 'Failed to parse link. Check your connection.' });
     } finally {
       setSearchLoading(false);
     }
@@ -531,7 +504,7 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
             <Input
               value={googleUrl}
               onChange={(e) => setGoogleUrl(e.target.value)}
-              placeholder="Paste Google Maps link…"
+              placeholder="Paste Google Maps or share link…"
               className="h-10 text-sm pl-8"
             />
           </div>
@@ -567,8 +540,8 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
         {googlePhotoRef && !displayImage && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-gold/20 bg-gold/5 px-3 py-2.5">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs text-gold/70 font-medium shrink-0">📸 Google photo available</span>
-              <span className="text-[10px] text-cream-muted/40 truncate">Use as cover photo?</span>
+              <span className="text-xs text-gold/70 font-medium shrink-0">📸 Google venue photo available</span>
+              <span className="text-[10px] text-cream-muted/40 truncate">Use as venue photo?</span>
             </div>
             <Button
               type="button"
@@ -648,27 +621,21 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
         <Input
           id="postcode"
           value={form.postcode}
-          onChange={(e) => set('postcode', e.target.value.toUpperCase())}
-          placeholder="CH1 2AB"
-          className="uppercase"
+          onChange={(e) => set('postcode', e.target.value)}
+          placeholder="e.g. CH1 2AB, D02 Y754, 08001…"
         />
       </div>
 
       {/* ── Area ── */}
       <div className="space-y-1.5">
-        <Label>Area *</Label>
-        <Select value={form.area} onValueChange={(v) => set('area', v)}>
-          <SelectTrigger className="h-12">
-            <SelectValue placeholder="Select area" />
-          </SelectTrigger>
-          <SelectContent>
-            {CHESTER_AREAS.map((area) => (
-              <SelectItem key={area} value={area}>
-                {area}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label htmlFor="area">Area *</Label>
+        <Input
+          id="area"
+          value={form.area}
+          onChange={(e) => set('area', e.target.value)}
+          placeholder="e.g. City Centre, Hoole, Dublin, Barcelona…"
+          required
+        />
       </div>
 
       {/* ── Lat / Lng ── */}
@@ -726,9 +693,9 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
         />
       </div>
 
-      {/* ── Cover photo ── */}
+      {/* ── Venue photo ── */}
       <div className="space-y-1.5">
-        <Label>Cover Photo</Label>
+        <Label>Venue Photo</Label>
         {displayImage ? (
           <div className="relative rounded-lg overflow-hidden h-36 bg-surface-2">
             <Image
@@ -753,7 +720,7 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
             className="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-lg border border-dashed border-border hover:border-gold/40 text-cream-muted/40 hover:text-cream-muted transition-colors bg-surface-2"
           >
             <Upload className="h-6 w-6" />
-            <span className="text-xs">Click to upload cover photo</span>
+            <span className="text-xs">Upload venue photo</span>
           </button>
         )}
         <input

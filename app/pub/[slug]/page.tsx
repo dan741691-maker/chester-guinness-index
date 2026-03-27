@@ -62,11 +62,10 @@ export default async function PubPage({ params }: Props) {
       <Header />
 
       <main className="flex-1 pt-14">
-        {/* Hero — pub cover → latest review image → placeholder */}
+        {/* Hero — venue photo only */}
         <div className="relative h-56 sm:h-72 md:h-96 bg-surface-2 overflow-hidden">
           <PubHeroImage
             src={pub.hero_image_url}
-            fallbackSrc={latestReview?.image_url ?? null}
             alt={pub.name}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-black/40 to-transparent" />

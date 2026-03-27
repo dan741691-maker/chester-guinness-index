@@ -373,9 +373,9 @@ export function ReviewForm({
         />
       </div>
 
-      {/* Review photo */}
+      {/* Pint photo */}
       <div className="space-y-1.5">
-        <Label>Review Photo</Label>
+        <Label>Pint Photo</Label>
         {displayImage ? (
           <div className="relative rounded-lg overflow-hidden h-40 bg-surface-2">
             <Image
@@ -400,7 +400,7 @@ export function ReviewForm({
             className="flex flex-col items-center justify-center gap-2 w-full h-28 rounded-lg border border-dashed border-border hover:border-gold/40 text-cream-muted/40 hover:text-cream-muted transition-colors bg-surface-2"
           >
             <Upload className="h-6 w-6" />
-            <span className="text-xs">Click to upload photo</span>
+            <span className="text-xs">Upload pint photo</span>
           </button>
         )}
         <input

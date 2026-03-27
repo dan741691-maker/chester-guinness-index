@@ -158,6 +158,12 @@ export function ReviewForm({
         toast({ title: 'Review updated', variant: 'success' });
       } else {
         // ── Create new review ──
+        // Upload image first (before POST) so image_url is included atomically
+        if (imageFile) {
+          const tempId = crypto.randomUUID();
+          finalImageUrl = await uploadReviewImage(tempId, imageFile);
+        }
+
         const res = await fetch('/api/admin/reviews', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -170,33 +176,12 @@ export function ReviewForm({
             visited_at: visitedAt || null,
             is_official: isOfficial,
             is_published: isPublished,
-            image_url: null,
+            image_url: finalImageUrl,
           }),
         });
         const json = await res.json();
         if (!res.ok) {
           throw new Error(json.error ?? `Save failed (HTTP ${res.status})`);
-        }
-
-        const newReviewId = json.data.id as string;
-
-        // Upload image now that we have the review ID
-        if (imageFile) {
-          try {
-            finalImageUrl = await uploadReviewImage(newReviewId, imageFile);
-            await fetch(`/api/admin/reviews/${newReviewId}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ image_url: finalImageUrl }),
-            });
-          } catch (imgErr) {
-            console.error('[ReviewForm] image upload failed:', imgErr);
-            toast({
-              title: 'Review saved — but image upload failed',
-              description: extractError(imgErr),
-              variant: 'destructive',
-            });
-          }
         }
 
         toast({ title: 'Review saved', variant: 'success' });

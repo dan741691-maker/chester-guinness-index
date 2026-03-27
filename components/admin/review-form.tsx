@@ -158,12 +158,6 @@ export function ReviewForm({
         toast({ title: 'Review updated', variant: 'success' });
       } else {
         // ── Create new review ──
-        // Upload image first (before POST) so image_url is included atomically
-        if (imageFile) {
-          const tempId = crypto.randomUUID();
-          finalImageUrl = await uploadReviewImage(tempId, imageFile);
-        }
-
         const res = await fetch('/api/admin/reviews', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -176,12 +170,28 @@ export function ReviewForm({
             visited_at: visitedAt || null,
             is_official: isOfficial,
             is_published: isPublished,
-            image_url: finalImageUrl,
+            image_url: null,
           }),
         });
         const json = await res.json();
         if (!res.ok) {
           throw new Error(json.error ?? `Save failed (HTTP ${res.status})`);
+        }
+
+        const newReviewId = json.data.id as string;
+
+        // Upload image using the real review ID, then PATCH to persist the URL
+        if (imageFile) {
+          finalImageUrl = await uploadReviewImage(newReviewId, imageFile);
+          const patchRes = await fetch(`/api/admin/reviews/${newReviewId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_url: finalImageUrl }),
+          });
+          const patchJson = await patchRes.json();
+          if (!patchRes.ok) {
+            throw new Error(patchJson.error ?? `Failed to save pint photo (HTTP ${patchRes.status})`);
+          }
         }
 
         toast({ title: 'Review saved', variant: 'success' });

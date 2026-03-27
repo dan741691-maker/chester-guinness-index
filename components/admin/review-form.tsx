@@ -133,8 +133,14 @@ export function ReviewForm({
       if (review) {
         // ── Update existing review ──
         if (imageFile) {
-          finalImageUrl = await uploadReviewImage(review.id, imageFile);
+          try {
+            finalImageUrl = await uploadReviewImage(review.id, imageFile);
+          } catch (uploadErr) {
+            throw new Error('Photo upload failed: ' + extractError(uploadErr));
+          }
         }
+
+        console.log('[ReviewForm update] image_url being saved:', finalImageUrl);
 
         const res = await fetch(`/api/admin/reviews/${review.id}`, {
           method: 'PATCH',
@@ -152,7 +158,7 @@ export function ReviewForm({
         });
         const json = await res.json();
         if (!res.ok) {
-          throw new Error(json.error ?? `Save failed (HTTP ${res.status})`);
+          throw new Error('Review update failed: ' + (json.error ?? `HTTP ${res.status}`));
         }
 
         toast({ title: 'Review updated', variant: 'success' });
@@ -175,14 +181,26 @@ export function ReviewForm({
         });
         const json = await res.json();
         if (!res.ok) {
-          throw new Error(json.error ?? `Save failed (HTTP ${res.status})`);
+          throw new Error('Review create failed: ' + (json.error ?? `HTTP ${res.status}`));
         }
 
-        const newReviewId = json.data.id as string;
+        const newReviewId = json.data?.id as string | undefined;
+        console.log('[ReviewForm create] newReviewId:', newReviewId, 'imageFile:', !!imageFile);
+
+        if (!newReviewId) {
+          throw new Error('Review create failed: no id returned from server');
+        }
 
         // Upload image using the real review ID, then PATCH to persist the URL
         if (imageFile) {
-          finalImageUrl = await uploadReviewImage(newReviewId, imageFile);
+          try {
+            finalImageUrl = await uploadReviewImage(newReviewId, imageFile);
+          } catch (uploadErr) {
+            throw new Error('Photo upload failed: ' + extractError(uploadErr));
+          }
+
+          console.log('[ReviewForm create] uploading pint photo, url:', finalImageUrl);
+
           const patchRes = await fetch(`/api/admin/reviews/${newReviewId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -190,7 +208,7 @@ export function ReviewForm({
           });
           const patchJson = await patchRes.json();
           if (!patchRes.ok) {
-            throw new Error(patchJson.error ?? `Failed to save pint photo (HTTP ${patchRes.status})`);
+            throw new Error('Photo save failed: ' + (patchJson.error ?? `HTTP ${patchRes.status}`));
           }
         }
 

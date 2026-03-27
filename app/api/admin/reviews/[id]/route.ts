@@ -39,13 +39,23 @@ export async function PATCH(
     const { id } = await params;
     const raw = await request.json();
     const body = sanitiseScores(raw);
+
+    console.log('[PATCH /api/admin/reviews/[id]] id:', id, 'fields:', Object.keys(body));
+
     const admin = await createAdminClient();
     // Supabase generic types resolve `.update()` param as `never` (pre-existing project issue).
     // @ts-ignore
     const { data, error } = await admin.from('reviews').update(body).eq('id', id).select().single();
 
     if (error) {
-      console.error('[PATCH /api/admin/reviews/[id]]', error);
+      console.error('[PATCH /api/admin/reviews/[id]] db error:', {
+        id,
+        fields: Object.keys(body),
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+      });
       return NextResponse.json(
         { error: error.message, details: error.details, hint: error.hint, code: error.code },
         { status: 400 },

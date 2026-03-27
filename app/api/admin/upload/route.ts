@@ -20,16 +20,27 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const admin = await createAdminClient();
 
+    // Fall back to octet-stream if the browser did not supply a MIME type
+    // (common for HEIC / HEIF files on some iOS versions)
+    const contentType = file.type || 'application/octet-stream';
+
+    console.log('[POST /api/admin/upload] path:', path, 'contentType:', contentType, 'size:', buffer.length);
+
     const { error } = await admin.storage
       .from('pub-images')
-      .upload(path, buffer, { contentType: file.type, upsert: true });
+      .upload(path, buffer, { contentType, upsert: true });
 
     if (error) {
-      console.error('[POST /api/admin/upload]', error);
+      console.error('[POST /api/admin/upload] storage error:', {
+        message: error.message,
+        name: error.name,
+        status: (error as { status?: number }).status,
+      });
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     const { data } = admin.storage.from('pub-images').getPublicUrl(path);
+    console.log('[POST /api/admin/upload] success, url:', data.publicUrl);
     return NextResponse.json({ url: data.publicUrl });
   } catch (err) {
     console.error('[POST /api/admin/upload] unexpected:', err);

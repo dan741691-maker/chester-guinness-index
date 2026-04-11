@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Trophy, Droplets, PoundSterling, Star, Clock } from 'lucide-react';
+import { Trophy, Droplets, PoundSterling, Star, Clock, Users } from 'lucide-react';
 import { getLeaderboard } from '@/services/pubs';
+import { getReviewerLeaderboard } from '@/services/reviewers';
+import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { ScoreRing } from '@/components/pub/score-display';
@@ -9,6 +11,7 @@ import { RatingBadge } from '@/components/pub/rating-badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { formatDate, formatScore } from '@/lib/utils';
+import { ReviewerLeaderboard } from './reviewer-leaderboard';
 
 export const metadata: Metadata = {
   title: 'Leaderboard',
@@ -18,8 +21,18 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 export default async function LeaderboardPage() {
-  const { topOverall, bestTaste, bestValue, bestPour, recentReviews } =
-    await getLeaderboard();
+  const [
+    { topOverall, bestTaste, bestValue, bestPour, recentReviews },
+    reviewerData,
+    supabase,
+  ] = await Promise.all([
+    getLeaderboard(),
+    getReviewerLeaderboard(),
+    createClient(),
+  ]);
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const currentUserId = user?.id ?? null;
 
   return (
     <div className="min-h-screen bg-[#080808] flex flex-col">
@@ -55,6 +68,9 @@ export default async function LeaderboardPage() {
               </TabsTrigger>
               <TabsTrigger value="recent" className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" /> Recent
+              </TabsTrigger>
+              <TabsTrigger value="reviewers" className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" /> Reviewers
               </TabsTrigger>
             </TabsList>
 
@@ -235,6 +251,17 @@ export default async function LeaderboardPage() {
                   </Link>
                 ))}
               </div>
+            </TabsContent>
+
+            {/* Reviewers */}
+            <TabsContent value="reviewers">
+              <ReviewerLeaderboard
+                reviewers={reviewerData.reviewers}
+                totalReviews={reviewerData.totalReviews}
+                totalPubsReviewed={reviewerData.totalPubsReviewed}
+                mostActiveReviewer={reviewerData.mostActiveReviewer}
+                currentUserId={currentUserId}
+              />
             </TabsContent>
           </Tabs>
 

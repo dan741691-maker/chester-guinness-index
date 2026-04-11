@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import type { Pub, PubInsert, PubUpdate, PubWithReviews, PubWithLatestImage } from '@/types';
 
-export async function getAllPubs({ activeOnly = false }: { activeOnly?: boolean } = {}): Promise<PubWithLatestImage[]> {
+export async function getAllPubs({ activeOnly = false, scoredOnly = false }: { activeOnly?: boolean; scoredOnly?: boolean } = {}): Promise<PubWithLatestImage[]> {
   const supabase = await createClient();
   let query = supabase.from('pubs').select('*').order('current_score', { ascending: false });
   if (activeOnly) query = query.eq('is_active', true);
+  if (scoredOnly) query = query.gt('current_score', 0);
   const { data: pubs, error } = await query;
   if (error) throw new Error(`Failed to fetch pubs: ${error.message}`);
   if (!pubs?.length) return [];

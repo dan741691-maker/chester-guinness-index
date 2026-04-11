@@ -88,6 +88,22 @@ export function ReviewForm({
     setScores((s) => ({ ...s, [key]: Math.min(10, Math.max(0, rounded)) }));
   }, []);
 
+  // Auto-calculate price score: £7.00 = 6.0, every 10p cheaper = +0.1, every 10p dearer = -0.1
+  function calcPriceScore(priceStr: string): number | null {
+    const p = parseFloat(priceStr);
+    if (isNaN(p) || p <= 0) return null;
+    const raw = 13.0 - p; // equivalent to 6.0 + (7.0 - p) / 0.10 * 0.1
+    return Math.round(Math.max(1.0, Math.min(10.0, raw)) * 10) / 10;
+  }
+
+  function handlePriceChange(val: string) {
+    setPrice(val);
+    const calculated = calcPriceScore(val);
+    if (calculated !== null) {
+      setScore('price_score', calculated);
+    }
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -287,77 +303,90 @@ export function ReviewForm({
       {/* Score inputs */}
       <div className="space-y-4">
         <p className="text-[10px] uppercase tracking-widest text-cream-muted/30">Scores (0–10)</p>
-        {SCORE_CATEGORIES.map(({ key, label, icon }) => (
-          <div key={key} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor={key} className="flex items-center gap-2 text-sm">
-                <span className="text-base leading-none">{icon}</span>
-                {label}
-              </Label>
-              <span
-                className="text-xl font-bold font-serif tabular-nums"
-                style={{ color: tier.color }}
-              >
-                {formatScore(scores[key])}
-              </span>
+        {SCORE_CATEGORIES.map(({ key, label, icon }) => {
+          const isPrice = key === 'price_score';
+          return (
+            <div key={key} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor={key} className="flex items-center gap-2 text-sm">
+                  <span className="text-base leading-none">{icon}</span>
+                  {label}
+                </Label>
+                {!isPrice && (
+                  <span
+                    className="text-xl font-bold font-serif tabular-nums"
+                    style={{ color: tier.color }}
+                  >
+                    {formatScore(scores[key])}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setScore(key, scores[key] - 0.1)}
+                  className="w-12 h-12 rounded-full border border-border/80 text-cream-muted hover:border-gold/50 hover:text-gold active:bg-gold/10 transition-colors flex items-center justify-center text-xl font-bold flex-shrink-0"
+                  aria-label={`Decrease ${label}`}
+                >
+                  −
+                </button>
+                <input
+                  id={key}
+                  type="range"
+                  min="0"
+                  max="10"
+                  step="0.1"
+                  value={scores[key]}
+                  onChange={(e) => setScore(key, parseFloat(e.target.value))}
+                  className="flex-1 h-3 appearance-none bg-surface-3 rounded-full accent-gold cursor-pointer"
+                />
+                {isPrice && (
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center rounded-md border border-border/80 bg-surface-2 overflow-hidden h-9 w-[82px]">
+                      <span className="pl-2 pr-1 text-sm text-cream-muted/60 select-none">£</span>
+                      <input
+                        type="number"
+                        step="0.10"
+                        min="0"
+                        value={price}
+                        onChange={(e) => handlePriceChange(e.target.value)}
+                        placeholder="7.00"
+                        className="w-full bg-transparent text-sm text-cream placeholder-cream-muted/30 focus:outline-none pr-1 tabular-nums"
+                        aria-label="Guinness price in pounds"
+                      />
+                    </div>
+                    <span
+                      className="text-xl font-bold font-serif tabular-nums w-10 text-right"
+                      style={{ color: tier.color }}
+                    >
+                      {formatScore(scores[key])}
+                    </span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setScore(key, scores[key] + 0.1)}
+                  className="w-12 h-12 rounded-full border border-border/80 text-cream-muted hover:border-gold/50 hover:text-gold active:bg-gold/10 transition-colors flex items-center justify-center text-xl font-bold flex-shrink-0"
+                  aria-label={`Increase ${label}`}
+                >
+                  +
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setScore(key, scores[key] - 0.1)}
-                className="w-12 h-12 rounded-full border border-border/80 text-cream-muted hover:border-gold/50 hover:text-gold active:bg-gold/10 transition-colors flex items-center justify-center text-xl font-bold flex-shrink-0"
-                aria-label={`Decrease ${label}`}
-              >
-                −
-              </button>
-              <input
-                id={key}
-                type="range"
-                min="0"
-                max="10"
-                step="0.1"
-                value={scores[key]}
-                onChange={(e) => setScore(key, parseFloat(e.target.value))}
-                className="flex-1 h-3 appearance-none bg-surface-3 rounded-full accent-gold cursor-pointer"
-              />
-              <button
-                type="button"
-                onClick={() => setScore(key, scores[key] + 0.1)}
-                className="w-12 h-12 rounded-full border border-border/80 text-cream-muted hover:border-gold/50 hover:text-gold active:bg-gold/10 transition-colors flex items-center justify-center text-xl font-bold flex-shrink-0"
-                aria-label={`Increase ${label}`}
-              >
-                +
-              </button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Price + date */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="price">Price (£)</Label>
-          <Input
-            id="price"
-            type="number"
-            step="0.01"
-            min="0"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="4.90"
-            className="h-12 text-base"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="visited_at">Date visited</Label>
-          <Input
-            id="visited_at"
-            type="date"
-            value={visitedAt}
-            onChange={(e) => setVisitedAt(e.target.value)}
-            className="h-12 text-base"
-          />
-        </div>
+      {/* Date visited */}
+      <div className="space-y-1.5">
+        <Label htmlFor="visited_at">Date visited</Label>
+        <Input
+          id="visited_at"
+          type="date"
+          value={visitedAt}
+          onChange={(e) => setVisitedAt(e.target.value)}
+          className="h-12 text-base"
+        />
       </div>
 
       {/* Notes */}

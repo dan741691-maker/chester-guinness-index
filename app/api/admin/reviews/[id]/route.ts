@@ -79,11 +79,61 @@ export async function DELETE(
   try {
     const { id } = await params;
     const admin = await createAdminClient();
+
+    // Fetch pub_id and is_official before deleting so we can recalculate after
+    // @ts-ignore — pre-existing project-wide Supabase type mismatch
+    const { data: review, error: fetchError } = await admin
+      .from('reviews')
+      .select('pub_id, is_official')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !review) {
+      return NextResponse.json({ error: 'Review not found' }, { status: 404 });
+    }
+
     const { error } = await admin.from('reviews').delete().eq('id', id);
 
     if (error) {
       console.error('[DELETE /api/admin/reviews/[id]]', error);
       return NextResponse.json({ error: error.message, code: error.code }, { status: 400 });
+    }
+
+    // Recalculate pub score from remaining reviews (guards against broken DB trigger)
+    const reviewData = review as { pub_id: string; is_official: boolean };
+    if (reviewData.is_official) {
+      // @ts-ignore — pre-existing project-wide Supabase type mismatch
+      const { data: latest } = await admin
+        .from('reviews')
+        .select('total_score')
+        .eq('pub_id', reviewData.pub_id)
+        .eq('is_official', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const latestData = latest as { total_score: number } | null;
+      if (latestData) {
+        const score = latestData.total_score;
+        const tier =
+          score >= 46 ? 'Legendary' :
+          score >= 41 ? 'Elite' :
+          score >= 36 ? 'Strong' :
+          score >= 31 ? 'Decent' :
+          score >= 21 ? 'Weak' : 'Avoid';
+        const pubUpdate = admin.from('pubs').update(
+          // @ts-ignore — pre-existing project-wide Supabase type mismatch
+          { current_score: score, current_rating_tier: tier }
+        ).eq('id', reviewData.pub_id);
+        await pubUpdate;
+      } else {
+        // No official reviews remain — reset
+        const pubReset = admin.from('pubs').update(
+          // @ts-ignore — pre-existing project-wide Supabase type mismatch
+          { current_score: 0, current_rating_tier: null }
+        ).eq('id', reviewData.pub_id);
+        await pubReset;
+      }
     }
 
     return NextResponse.json({ ok: true });

@@ -60,6 +60,7 @@ export function ReviewForm({
   const addAnotherRef = useRef(false);
 
   const [pubId, setPubId] = useState(review?.pub_id ?? defaultPubId ?? '');
+  const [glassCode, setGlassCode] = useState('');
   const [price, setPrice] = useState(review?.guinness_price_gbp?.toString() ?? '');
   const [notes, setNotes] = useState(review?.notes ?? '');
   const [verdict, setVerdict] = useState(review?.verdict ?? '');
@@ -87,6 +88,23 @@ export function ReviewForm({
     const rounded = Math.round(value * 10) / 10;
     setScores((s) => ({ ...s, [key]: Math.min(10, Math.max(0, rounded)) }));
   }, []);
+
+  // Auto-calculate glass/pour score from Guinness glass code (e.g. M25 = 2025)
+  function calcGlassScore(code: string): number | null {
+    const match = code.trim().match(/^[Mm](\d{2})$/);
+    if (!match) return null;
+    const glassYear = 2000 + parseInt(match[1], 10);
+    const raw = 10 - (2026 - glassYear);
+    return Math.round(Math.max(1.0, Math.min(10.0, raw)) * 10) / 10;
+  }
+
+  function handleGlassCodeChange(val: string) {
+    setGlassCode(val);
+    const calculated = calcGlassScore(val);
+    if (calculated !== null) {
+      setScore('glass_pour', calculated);
+    }
+  }
 
   // Auto-calculate price score: £7.00 = 6.0, every 10p cheaper = +0.1, every 10p dearer = -0.1
   function calcPriceScore(priceStr: string): number | null {
@@ -305,6 +323,7 @@ export function ReviewForm({
         <p className="text-[10px] uppercase tracking-widest text-cream-muted/30">Scores (0–10)</p>
         {SCORE_CATEGORIES.map(({ key, label, icon }) => {
           const isPrice = key === 'price_score';
+          const isGlass = key === 'glass_pour';
           return (
             <div key={key} className="space-y-2">
               <div className="flex items-center justify-between">
@@ -312,7 +331,7 @@ export function ReviewForm({
                   <span className="text-base leading-none">{icon}</span>
                   {label}
                 </Label>
-                {!isPrice && (
+                {!isPrice && !isGlass && (
                   <span
                     className="text-xl font-bold font-serif tabular-nums"
                     style={{ color: tier.color }}
@@ -340,6 +359,27 @@ export function ReviewForm({
                   onChange={(e) => setScore(key, parseFloat(e.target.value))}
                   className="flex-1 h-3 appearance-none bg-surface-3 rounded-full accent-gold cursor-pointer"
                 />
+                {isGlass && (
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center rounded-md border border-border/80 bg-surface-2 overflow-hidden h-9 w-[82px]">
+                      <input
+                        type="text"
+                        value={glassCode}
+                        onChange={(e) => handleGlassCodeChange(e.target.value)}
+                        placeholder="M25"
+                        maxLength={3}
+                        className="w-full bg-transparent text-sm text-cream placeholder-cream-muted/30 focus:outline-none px-2 tabular-nums uppercase"
+                        aria-label="Guinness glass code"
+                      />
+                    </div>
+                    <span
+                      className="text-xl font-bold font-serif tabular-nums w-10 text-right"
+                      style={{ color: tier.color }}
+                    >
+                      {formatScore(scores[key])}
+                    </span>
+                  </div>
+                )}
                 {isPrice && (
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <div className="flex items-center rounded-md border border-border/80 bg-surface-2 overflow-hidden h-9 w-[82px]">

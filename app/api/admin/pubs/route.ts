@@ -16,7 +16,11 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const admin = await createAdminClient();
-    const { data, error } = await admin.from('pubs').insert(body).select().single();
+    const { data, error } = await admin
+      .from('pubs')
+      .insert({ ...body, added_by: user.id })
+      .select()
+      .single();
 
     if (error) {
       console.error('[POST /api/admin/pubs]', error);

@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Loader2,
   ArrowLeft,
+  MapPin,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -81,6 +82,18 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
   } | null>(null);
   const [googlePhotoRef, setGooglePhotoRef] = useState<string | null>(null);
   const [googlePhotoLoading, setGooglePhotoLoading] = useState(false);
+
+  // Nearby places state
+  interface NearbyResult {
+    placeId: string;
+    name: string;
+    address: string;
+    lat?: number;
+    lng?: number;
+    distanceMetres: number | null;
+  }
+  const [nearbyResults, setNearbyResults] = useState<NearbyResult[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
 
   const [form, setForm] = useState({
     name: pub?.name ?? '',
@@ -299,6 +312,53 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
     }
   }
 
+  // ---- Nearby places ----
+
+  async function handleNearby() {
+    if (!navigator.geolocation) {
+      toast({ title: 'Geolocation not supported by your browser', variant: 'destructive' });
+      return;
+    }
+    setNearbyLoading(true);
+    setNearbyResults([]);
+    setAutofillMsg(null);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const res = await fetch(
+            `/api/admin/google-place?type=nearby&lat=${latitude}&lng=${longitude}`,
+          );
+          const json = await res.json();
+          if (!res.ok) {
+            toast({
+              title: json.hint ?? json.error ?? 'Could not find nearby pubs',
+              variant: 'destructive',
+            });
+            return;
+          }
+          if (!json.results?.length) {
+            setAutofillMsg({ type: 'error', text: 'No pubs found nearby — try searching manually' });
+            return;
+          }
+          setNearbyResults(json.results);
+        } catch {
+          toast({ title: 'Failed to find nearby pubs', variant: 'destructive' });
+        } finally {
+          setNearbyLoading(false);
+        }
+      },
+      () => {
+        setNearbyLoading(false);
+        toast({
+          title: 'Location access denied — please search manually',
+          variant: 'destructive',
+        });
+      },
+      { timeout: 10000 },
+    );
+  }
+
   // ---- Image upload ----
 
   async function uploadImage(pubId: string, file: File): Promise<string> {
@@ -442,9 +502,65 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-5 pb-4">
       {/* ── Google autofill ── */}
       <div className="rounded-xl border border-gold/20 bg-gold/5 p-4 space-y-3">
-        <p className="text-[10px] uppercase tracking-widest text-gold/60 font-medium">
-          Find via Google — auto-fill form
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] uppercase tracking-widest text-gold/60 font-medium">
+            Find via Google — auto-fill form
+          </p>
+          {/* Pubs Near Me */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleNearby}
+            disabled={nearbyLoading}
+            className="h-8 px-3 shrink-0 border-gold/40 text-gold hover:bg-gold/10 text-xs gap-1.5"
+          >
+            {nearbyLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <MapPin className="h-3.5 w-3.5" />
+            )}
+            {nearbyLoading ? 'Finding pubs…' : 'Pubs Near Me'}
+          </Button>
+        </div>
+
+        {/* Nearby results */}
+        {nearbyResults.length > 0 && (
+          <div>
+            <p className="text-[10px] text-cream-muted/50 mb-1.5 uppercase tracking-widest">
+              Nearby pubs — tap to auto-fill
+            </p>
+            <ul className="rounded-lg overflow-hidden border border-border max-h-64 overflow-y-auto">
+              {nearbyResults.map((r) => (
+                <li key={r.placeId}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      applyPlaceDetails(r.placeId);
+                      setNearbyResults([]);
+                    }}
+                    disabled={searchLoading}
+                    className="w-full text-left px-3 py-2.5 bg-surface-2 hover:bg-gold/10 transition-colors border-b border-border/50 last:border-b-0"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-cream truncate">{r.name}</p>
+                        <p className="text-xs text-cream-muted/50 truncate mt-0.5">{r.address}</p>
+                      </div>
+                      {r.distanceMetres !== null && (
+                        <span className="text-xs text-gold/70 shrink-0 font-mono">
+                          {r.distanceMetres < 1000
+                            ? `${r.distanceMetres}m`
+                            : `${(r.distanceMetres / 1000).toFixed(1)}km`}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Name search */}
         <div className="flex gap-2">

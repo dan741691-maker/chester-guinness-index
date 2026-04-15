@@ -4,11 +4,23 @@ import { Plus } from 'lucide-react';
 import { getAllPubs } from '@/services/pubs';
 import { PubsListClient } from '@/components/admin/pubs-list-client';
 import { Button } from '@/components/ui/button';
+import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = { title: 'Manage Pubs' };
 export const revalidate = 0;
 
 export default async function AdminPubsPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const roleRes = user
+    ? await supabase.from('reviewer_profiles').select('role').eq('user_id', user.id).single()
+    : null;
+  const role = roleRes?.data?.role ?? 'reviewer';
+  const currentUserId = user?.id ?? null;
+
   const pubs = await getAllPubs();
 
   return (
@@ -26,7 +38,7 @@ export default async function AdminPubsPage() {
         </Button>
       </div>
 
-      <PubsListClient pubs={pubs} />
+      <PubsListClient pubs={pubs} role={role} currentUserId={currentUserId} />
     </div>
   );
 }

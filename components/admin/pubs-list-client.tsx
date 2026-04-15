@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Search, X, ChevronRight } from 'lucide-react';
+import { ExternalLink, Search, X, ChevronRight, Pencil } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScoreRing } from '@/components/pub/score-display';
 import { RatingBadge } from '@/components/pub/rating-badge';
@@ -10,9 +10,12 @@ import type { Pub } from '@/types';
 
 interface PubsListClientProps {
   pubs: Pub[];
+  role?: string;
+  currentUserId?: string | null;
 }
 
-export function PubsListClient({ pubs }: PubsListClientProps) {
+export function PubsListClient({ pubs, role = 'reviewer', currentUserId }: PubsListClientProps) {
+  const isAdmin = role === 'admin';
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
@@ -62,55 +65,65 @@ export function PubsListClient({ pubs }: PubsListClientProps) {
         </div>
       ) : (
         <div className="space-y-1.5">
-          {filtered.map((pub) => (
-            <Link
-              key={pub.id}
-              href={`/admin/pubs/${pub.id}`}
-              className={`flex items-center gap-3 p-4 rounded-lg border transition-colors group ${
-                pub.is_active === false
-                  ? 'border-border/40 bg-surface/40 opacity-60'
-                  : 'border-border hover:bg-surface-2 hover:border-border/80'
-              }`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-serif font-semibold text-cream truncate group-hover:text-gold transition-colors">
-                    {pub.name}
+          {filtered.map((pub) => {
+            const canEdit = isAdmin || pub.added_by === currentUserId;
+            return (
+              <div
+                key={pub.id}
+                className={`flex items-center gap-3 p-4 rounded-lg border transition-colors ${
+                  pub.is_active === false
+                    ? 'border-border/40 bg-surface/40 opacity-60'
+                    : 'border-border bg-surface/30'
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-serif font-semibold text-cream truncate">
+                      {pub.name}
+                    </p>
+                    {pub.is_active === false && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded border border-red-500/30 text-red-400/60 flex-shrink-0">
+                        inactive
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-cream-muted/50 mt-0.5">
+                    {pub.area} · {pub.address}
+                    {pub.postcode ? ` · ${pub.postcode}` : ''}
                   </p>
-                  {pub.is_active === false && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded border border-red-500/30 text-red-400/60 flex-shrink-0">
-                      inactive
-                    </span>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {pub.current_score > 0 ? (
+                    <>
+                      <RatingBadge score={pub.current_score} size="sm" />
+                      <ScoreRing score={pub.current_score} size="sm" />
+                    </>
+                  ) : (
+                    <span className="text-xs text-cream-muted/30">Unreviewed</span>
+                  )}
+                  <Link
+                    href={`/pub/${pub.slug}`}
+                    target="_blank"
+                    className="text-cream-muted/30 hover:text-cream-muted transition-colors ml-1 p-1"
+                    aria-label="View public page"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                  {canEdit && (
+                    <Link
+                      href={`/admin/pubs/${pub.id}`}
+                      className="flex items-center gap-1 text-xs text-cream-muted hover:text-gold px-2.5 py-1.5 rounded border border-transparent hover:border-gold/30 hover:bg-gold/5 transition-colors"
+                      aria-label="Edit pub"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Edit
+                    </Link>
                   )}
                 </div>
-                <p className="text-xs text-cream-muted/50 mt-0.5">
-                  {pub.area} · {pub.address}
-                  {pub.postcode ? ` · ${pub.postcode}` : ''}
-                </p>
               </div>
-
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {pub.current_score > 0 ? (
-                  <>
-                    <RatingBadge score={pub.current_score} size="sm" />
-                    <ScoreRing score={pub.current_score} size="sm" />
-                  </>
-                ) : (
-                  <span className="text-xs text-cream-muted/30">Unreviewed</span>
-                )}
-                <Link
-                  href={`/pub/${pub.slug}`}
-                  target="_blank"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-cream-muted/30 hover:text-cream-muted transition-colors ml-1 p-1"
-                  aria-label="View public page"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-                <ChevronRight className="h-4 w-4 text-cream-muted/20 group-hover:text-cream-muted/50 transition-colors" />
-              </div>
-            </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

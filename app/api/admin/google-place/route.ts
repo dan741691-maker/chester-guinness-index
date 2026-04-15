@@ -228,7 +228,69 @@ export async function GET(request: Request) {
       );
     }
 
-    return NextResponse.json({ error: 'type must be "search", "details", or "resolve-url"' }, { status: 400 });
+    // ── Nearby search ─────────────────────────────────────────────────────────
+    if (type === 'nearby') {
+      const lat = searchParams.get('lat');
+      const lng = searchParams.get('lng');
+      if (!lat || !lng) {
+        return NextResponse.json({ error: 'lat and lng are required' }, { status: 400 });
+      }
+
+      interface NearbyResult {
+        place_id: string;
+        name: string;
+        vicinity: string;
+        geometry?: { location?: { lat: number; lng: number } };
+      }
+
+      function haversineMetres(
+        lat1: number, lng1: number, lat2: number, lng2: number
+      ): number {
+        const R = 6371000;
+        const dLat = ((lat2 - lat1) * Math.PI) / 180;
+        const dLng = ((lng2 - lng1) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) ** 2 +
+          Math.cos((lat1 * Math.PI) / 180) *
+            Math.cos((lat2 * Math.PI) / 180) *
+            Math.sin(dLng / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      const nearbyUrl =
+        `${PLACES_BASE}/nearbysearch/json?location=${lat},${lng}&radius=500&type=bar&key=${apiKey}`;
+      const res = await fetch(nearbyUrl, { next: { revalidate: 0 } });
+      const data = await res.json();
+
+      if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+        return NextResponse.json(
+          {
+            error: `Google Places API returned: ${data.status}`,
+            hint: data.error_message ?? 'Ensure the Places API is enabled.',
+          },
+          { status: 502 },
+        );
+      }
+
+      const userLat = parseFloat(lat);
+      const userLng = parseFloat(lng);
+
+      return NextResponse.json({
+        results: ((data.results ?? []) as NearbyResult[]).slice(0, 20).map((r) => ({
+          placeId: r.place_id,
+          name: r.name,
+          address: r.vicinity,
+          lat: r.geometry?.location?.lat,
+          lng: r.geometry?.location?.lng,
+          distanceMetres:
+            r.geometry?.location
+              ? Math.round(haversineMetres(userLat, userLng, r.geometry.location.lat, r.geometry.location.lng))
+              : null,
+        })),
+      });
+    }
+
+    return NextResponse.json({ error: 'type must be "search", "details", "resolve-url", or "nearby"' }, { status: 400 });
   } catch (err) {
     console.error('[GET /api/admin/google-place] unexpected:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -2,23 +2,28 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MapPin, Star, Share2, LogOut, Globe, UserCircle } from 'lucide-react';
+import { LayoutDashboard, MapPin, Star, Share2, LogOut, Globe, UserCircle, Trophy } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useRole } from '@/hooks/use-role';
 
-const navItems = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { href: '/admin/pubs', label: 'Pubs', icon: MapPin, exact: false },
-  { href: '/admin/reviews', label: 'Reviews', icon: Star, exact: false },
-  { href: '/admin/social', label: 'Social', icon: Share2, exact: false },
-  { href: '/admin/profile', label: 'Profile', icon: UserCircle, exact: false },
+const ALL_NAV_ITEMS = [
+  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true, adminOnly: false },
+  { href: '/admin/pubs', label: 'Pubs', icon: MapPin, exact: false, adminOnly: false },
+  { href: '/admin/reviews', label: 'Reviews', icon: Star, exact: false, adminOnly: false },
+  { href: '/admin/social', label: 'Social', icon: Share2, exact: false, adminOnly: true },
+  { href: '/leaderboard', label: 'Leaderboard', icon: Trophy, exact: true, adminOnly: false },
+  { href: '/admin/profile', label: 'Profile', icon: UserCircle, exact: false, adminOnly: false },
 ];
 
 export function AdminNav() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const { isAdmin, loading } = useRole();
+
+  const navItems = ALL_NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin || loading);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -94,7 +99,7 @@ export function AdminNav() {
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-surface safe-area-inset-bottom">
         <div className="flex">
-          {navItems.map(({ href, label, icon: Icon, exact }) => {
+          {navItems.filter((_, i) => i < 5).map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
             return (
               <Link

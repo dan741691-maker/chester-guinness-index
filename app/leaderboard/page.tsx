@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Trophy, Droplets, PoundSterling, Star, Clock, Users } from 'lucide-react';
 import { getLeaderboard } from '@/services/pubs';
-import { getReviewerLeaderboard } from '@/services/reviewers';
+import { getReviewerLeaderboard, getDanielOfficialLeaderboard } from '@/services/reviewers';
 import { createClient } from '@/lib/supabase/server';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
@@ -24,10 +24,12 @@ export default async function LeaderboardPage() {
   const [
     { topOverall, bestTaste, bestValue, bestPour, recentReviews },
     reviewerData,
+    officialPubs,
     supabase,
   ] = await Promise.all([
     getLeaderboard(),
     getReviewerLeaderboard(),
+    getDanielOfficialLeaderboard(),
     createClient(),
   ]);
 
@@ -71,6 +73,9 @@ export default async function LeaderboardPage() {
               </TabsTrigger>
               <TabsTrigger value="reviewers" className="flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" /> Reviewers
+              </TabsTrigger>
+              <TabsTrigger value="official" className="flex items-center gap-1.5">
+                ⭐ Official
               </TabsTrigger>
             </TabsList>
 
@@ -253,7 +258,7 @@ export default async function LeaderboardPage() {
               </div>
             </TabsContent>
 
-            {/* Reviewers */}
+            {/* Reviewers — Public Leaderboard */}
             <TabsContent value="reviewers">
               <ReviewerLeaderboard
                 reviewers={reviewerData.reviewers}
@@ -262,6 +267,62 @@ export default async function LeaderboardPage() {
                 mostActiveReviewer={reviewerData.mostActiveReviewer}
                 currentUserId={currentUserId}
               />
+            </TabsContent>
+
+            {/* Official — Daniel's rankings */}
+            <TabsContent value="official">
+              <div className="space-y-6">
+                <div className="rounded-lg border border-gold/20 bg-gold/5 p-4">
+                  <p className="text-xs text-gold/80 leading-relaxed">
+                    Official scores are based on DHS reviews only and represent the authoritative Chester Guinness Index ranking.
+                  </p>
+                </div>
+
+                {officialPubs.length === 0 ? (
+                  <div className="py-12 text-center text-cream-muted/30 text-sm">
+                    No official reviews yet.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {officialPubs.map((pub, idx) => (
+                      <Link
+                        key={pub.pubId}
+                        href={`/pub/${pub.pubSlug}`}
+                        className="flex items-center gap-4 p-4 rounded-lg border border-border hover:border-gold/30 hover:bg-surface transition-all group"
+                      >
+                        <div className="w-8 text-center flex-shrink-0">
+                          {idx === 0 ? (
+                            <span className="text-xl">🥇</span>
+                          ) : idx === 1 ? (
+                            <span className="text-xl">🥈</span>
+                          ) : idx === 2 ? (
+                            <span className="text-xl">🥉</span>
+                          ) : (
+                            <span className="text-sm font-bold font-serif text-cream-muted/40">
+                              {idx + 1}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-serif font-semibold text-cream group-hover:text-gold transition-colors truncate">
+                            {pub.pubName}
+                          </p>
+                          <p className="text-xs text-cream-muted/50">{pub.pubArea}</p>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          {pub.guinnessPriceGbp && (
+                            <span className="text-xs text-cream-muted/50 hidden sm:block">
+                              £{Number(pub.guinnessPriceGbp).toFixed(2)}
+                            </span>
+                          )}
+                          <RatingBadge score={pub.totalScore} size="sm" />
+                          <ScoreRing score={pub.totalScore} size="sm" />
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             </TabsContent>
           </Tabs>
 

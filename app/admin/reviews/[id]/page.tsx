@@ -20,6 +20,17 @@ export default async function EditReviewPage({ params }: Props) {
   const { id } = await params;
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const roleRes = user
+    ? await supabase.from('reviewer_profiles').select('role').eq('user_id', user.id).single()
+    : null;
+  const role = roleRes?.data?.role ?? 'reviewer';
+  const isAdmin = role === 'admin';
+  const currentUserId = user?.id ?? null;
+
   const [reviewRes, pubs] = await Promise.all([
     supabase.from('reviews').select('*, pub:pubs(name, slug)').eq('id', id).single(),
     getAllPubs(),
@@ -54,7 +65,10 @@ export default async function EditReviewPage({ params }: Props) {
     image_url: reviewData.image_url ?? null,
     visited_at: reviewData.visited_at,
     created_at: reviewData.created_at,
+    reviewer_id: reviewData.reviewer_id ?? null,
   };
+
+  const canDelete = isAdmin || review.reviewer_id === currentUserId;
 
   return (
     <div className="space-y-6 pb-8">
@@ -112,19 +126,21 @@ export default async function EditReviewPage({ params }: Props) {
       </div>
 
       {/* Danger zone */}
-      <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
-        <h3 className="text-sm font-semibold text-red-400 mb-1">Danger Zone</h3>
-        <p className="text-xs text-cream-muted/50 mb-3">
-          Deleting this review is permanent. If it was the latest official review, the pub score
-          will be recalculated from the next most recent official review.
-        </p>
-        <DeleteButton
-          table="reviews"
-          id={review.id}
-          pubSlug={pub?.slug}
-          redirectAfterDelete="/admin/reviews"
-        />
-      </div>
+      {canDelete && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
+          <h3 className="text-sm font-semibold text-red-400 mb-1">Danger Zone</h3>
+          <p className="text-xs text-cream-muted/50 mb-3">
+            Deleting this review is permanent. If it was the latest official review, the pub score
+            will be recalculated from the next most recent official review.
+          </p>
+          <DeleteButton
+            table="reviews"
+            id={review.id}
+            pubSlug={pub?.slug}
+            redirectAfterDelete="/admin/reviews"
+          />
+        </div>
+      )}
     </div>
   );
 }

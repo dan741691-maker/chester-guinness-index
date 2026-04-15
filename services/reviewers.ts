@@ -94,3 +94,71 @@ export async function getReviewerLeaderboard(): Promise<ReviewerLeaderboardData>
 
   return { reviewers: reviewerStats, totalReviews, totalPubsReviewed, mostActiveReviewer };
 }
+
+export interface OfficialPubEntry {
+  pubId: string;
+  pubName: string;
+  pubSlug: string;
+  pubArea: string;
+  currentRatingTier: string | null;
+  totalScore: number;
+  guinnessPriceGbp: number | null;
+}
+
+export async function getDanielOfficialLeaderboard(): Promise<OfficialPubEntry[]> {
+  const supabase = await createClient();
+
+  // Find Daniel's reviewer profile by email
+  const { data: danielProfile } = await supabase
+    .from('reviewer_profiles')
+    .select('user_id')
+    .eq('email', 'daniel.siddons@chesterguinnessindex.com')
+    .single();
+
+  if (!danielProfile?.user_id) return [];
+
+  // Fetch Daniel's official reviews ordered most recent first
+  const { data: reviews } = await supabase
+    .from('reviews')
+    .select(
+      'total_score, pub_id, guinness_price_gbp, created_at, pub:pubs(id, name, slug, current_rating_tier, area)',
+    )
+    .eq('reviewer_id', danielProfile.user_id)
+    .eq('is_official', true)
+    .order('created_at', { ascending: false });
+
+  if (!reviews) return [];
+
+  type RawRow = {
+    total_score: number;
+    pub_id: string;
+    guinness_price_gbp: number | null;
+    created_at: string;
+    pub: { id: string; name: string; slug: string; current_rating_tier: string | null; area: string } | null;
+  };
+
+  const rows = reviews as unknown as RawRow[];
+
+  // De-duplicate: keep only the latest review per pub
+  const seen = new Set<string>();
+  const deduped: RawRow[] = [];
+  for (const r of rows) {
+    if (r.pub && !seen.has(r.pub_id)) {
+      seen.add(r.pub_id);
+      deduped.push(r);
+    }
+  }
+
+  // Sort by score descending
+  deduped.sort((a, b) => b.total_score - a.total_score);
+
+  return deduped.map((r) => ({
+    pubId: r.pub!.id,
+    pubName: r.pub!.name,
+    pubSlug: r.pub!.slug,
+    pubArea: r.pub!.area,
+    currentRatingTier: r.pub!.current_rating_tier,
+    totalScore: r.total_score,
+    guinnessPriceGbp: r.guinness_price_gbp,
+  }));
+}

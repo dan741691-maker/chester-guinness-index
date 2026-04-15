@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Users, Star, BarChart2 } from 'lucide-react';
+import { Users, Star } from 'lucide-react';
 import { formatDate, formatScore } from '@/lib/utils';
 import type { ReviewerStat } from '@/services/reviewers';
 

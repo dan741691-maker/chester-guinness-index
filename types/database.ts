@@ -19,6 +19,7 @@ export interface Database {
           current_rating_tier: string | null;
           description: string | null;
           is_active: boolean;
+          added_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -37,6 +38,7 @@ export interface Database {
           current_rating_tier?: string | null;
           description?: string | null;
           is_active?: boolean;
+          added_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -55,6 +57,7 @@ export interface Database {
           current_rating_tier?: string | null;
           description?: string | null;
           is_active?: boolean;
+          added_by?: string | null;
           updated_at?: string;
         };
       };
@@ -142,6 +145,7 @@ export interface Database {
           display_name: string;
           avatar_url: string | null;
           accent_color: string;
+          role: string;
           created_at: string;
           updated_at: string;
         };
@@ -152,6 +156,7 @@ export interface Database {
           display_name?: string;
           avatar_url?: string | null;
           accent_color?: string;
+          role?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -161,6 +166,7 @@ export interface Database {
           display_name?: string;
           avatar_url?: string | null;
           accent_color?: string;
+          role?: string;
           updated_at?: string;
         };
       };

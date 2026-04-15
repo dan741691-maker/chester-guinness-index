@@ -10,6 +10,7 @@ import { RatingBadge } from '@/components/pub/rating-badge';
 import { ScoreRing } from '@/components/pub/score-display';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { createClient } from '@/lib/supabase/server';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -25,6 +26,18 @@ export const revalidate = 0;
 
 export default async function EditPubPage({ params }: Props) {
   const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const roleRes = user
+    ? await supabase.from('reviewer_profiles').select('role').eq('user_id', user.id).single()
+    : null;
+  const role = roleRes?.data?.role ?? 'reviewer';
+  const isAdmin = role === 'admin';
+  const currentUserId = user?.id ?? null;
+
   const [pub, reviews] = await Promise.all([getPubById(id), getReviewsForPub(id)]);
 
   if (!pub) notFound();
@@ -122,17 +135,21 @@ export default async function EditPubPage({ params }: Props) {
                   </p>
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  <Link
-                    href={`/admin/reviews/${review.id}`}
-                    className="text-xs text-cream-muted hover:text-cream px-3 py-1.5 rounded hover:bg-surface-2 transition-colors border border-transparent hover:border-border"
-                  >
-                    Edit
-                  </Link>
-                  <DeleteButton
-                    table="reviews"
-                    id={review.id}
-                    pubSlug={pub.slug}
-                  />
+                  {(isAdmin || review.reviewer_id === currentUserId) && (
+                    <Link
+                      href={`/admin/reviews/${review.id}`}
+                      className="text-xs text-cream-muted hover:text-cream px-3 py-1.5 rounded hover:bg-surface-2 transition-colors border border-transparent hover:border-border"
+                    >
+                      Edit
+                    </Link>
+                  )}
+                  {(isAdmin || review.reviewer_id === currentUserId) && (
+                    <DeleteButton
+                      table="reviews"
+                      id={review.id}
+                      pubSlug={pub.slug}
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -140,18 +157,20 @@ export default async function EditPubPage({ params }: Props) {
         )}
       </div>
 
-      {/* Danger zone */}
-      <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
-        <h3 className="text-sm font-semibold text-red-400 mb-1">Danger Zone</h3>
-        <p className="text-xs text-cream-muted/50 mb-3">
-          Deleting this pub is permanent and will remove it from the public map.
-        </p>
-        <DeleteButton
-          table="pubs"
-          id={pub.id}
-          redirectAfterDelete="/admin/pubs"
-        />
-      </div>
+      {/* Danger zone — admin only for pub delete */}
+      {isAdmin && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
+          <h3 className="text-sm font-semibold text-red-400 mb-1">Danger Zone</h3>
+          <p className="text-xs text-cream-muted/50 mb-3">
+            Deleting this pub is permanent and will remove it from the public map.
+          </p>
+          <DeleteButton
+            table="pubs"
+            id={pub.id}
+            redirectAfterDelete="/admin/pubs"
+          />
+        </div>
+      )}
     </div>
   );
 }

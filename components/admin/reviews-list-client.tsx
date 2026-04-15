@@ -20,9 +20,12 @@ type ReviewWithPub = Review & { pub: { name: string; slug: string } | null };
 interface ReviewsListClientProps {
   reviews: ReviewWithPub[];
   pubs: Pub[];
+  role?: string;
+  currentUserId?: string | null;
 }
 
-export function ReviewsListClient({ reviews, pubs }: ReviewsListClientProps) {
+export function ReviewsListClient({ reviews, pubs, role = 'reviewer', currentUserId }: ReviewsListClientProps) {
+  const isAdmin = role === 'admin';
   const [search, setSearch] = useState('');
   const [pubFilter, setPubFilter] = useState('all');
 
@@ -109,16 +112,13 @@ export function ReviewsListClient({ reviews, pubs }: ReviewsListClientProps) {
           {filtered.map((review) => {
             const pubName = review.pub?.name ?? 'Unknown pub';
             const pubSlug = review.pub?.slug ?? null;
+            const canEdit = isAdmin || review.reviewer_id === currentUserId;
 
-            return (
-              <Link
-                key={review.id}
-                href={`/admin/reviews/${review.id}`}
-                className="flex items-start gap-3 p-4 rounded-lg border border-border hover:bg-surface-2 hover:border-border/80 transition-colors group"
-              >
+            const inner = (
+              <>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-serif font-semibold text-cream truncate group-hover:text-gold transition-colors">
+                    <p className={`font-serif font-semibold text-cream truncate ${canEdit ? 'group-hover:text-gold transition-colors' : ''}`}>
                       {pubName}
                     </p>
                     {pubSlug && (
@@ -162,9 +162,28 @@ export function ReviewsListClient({ reviews, pubs }: ReviewsListClientProps) {
                     {review.total_score}
                     <span className="text-xs text-cream-muted/40">/50</span>
                   </span>
-                  <ChevronRight className="h-4 w-4 text-cream-muted/20 group-hover:text-cream-muted/50 transition-colors" />
+                  {canEdit && (
+                    <ChevronRight className="h-4 w-4 text-cream-muted/20 group-hover:text-cream-muted/50 transition-colors" />
+                  )}
                 </div>
+              </>
+            );
+
+            return canEdit ? (
+              <Link
+                key={review.id}
+                href={`/admin/reviews/${review.id}`}
+                className="flex items-start gap-3 p-4 rounded-lg border border-border hover:bg-surface-2 hover:border-border/80 transition-colors group"
+              >
+                {inner}
               </Link>
+            ) : (
+              <div
+                key={review.id}
+                className="flex items-start gap-3 p-4 rounded-lg border border-border"
+              >
+                {inner}
+              </div>
             );
           })}
         </div>

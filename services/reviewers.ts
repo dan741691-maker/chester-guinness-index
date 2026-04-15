@@ -108,41 +108,70 @@ export interface OfficialPubEntry {
 export async function getDanielOfficialLeaderboard(): Promise<OfficialPubEntry[]> {
   const supabase = await createClient();
 
-  // Find Daniel's reviewer profile by email
-  const { data: danielProfile } = await supabase
+  // Step 1: Get ALL reviewer profiles so we can join in JS.
+  // Try to find admin by role column (requires migration to have run),
+  // then fall back to known email.
+  const { data: profilesRaw } = await supabase
     .from('reviewer_profiles')
-    .select('user_id')
-    .eq('email', 'daniel.siddons@chesterguinnessindex.com')
-    .single();
+    .select('id, user_id, email, role');
 
-  if (!danielProfile?.user_id) return [];
+  type ProfileRow = {
+    id: string;
+    user_id: string | null;
+    email: string;
+    role: string | null;
+  };
+  const profiles = (profilesRaw ?? []) as unknown as ProfileRow[];
 
-  // Fetch Daniel's official reviews ordered most recent first
-  const { data: reviews } = await supabase
+  const adminProfile =
+    profiles.find((p) => p.role === 'admin') ??
+    profiles.find((p) => p.email === 'daniel.siddons@chesterguinnessindex.com');
+
+  console.log('[getDanielOfficialLeaderboard] admin profile:', JSON.stringify(adminProfile));
+
+  if (!adminProfile) return [];
+
+  // Step 2: Fetch ALL official reviews with reviewer_id included so we can join.
+  const { data: allReviewsRaw } = await supabase
     .from('reviews')
     .select(
-      'total_score, pub_id, guinness_price_gbp, created_at, pub:pubs(id, name, slug, current_rating_tier, area)',
+      'total_score, pub_id, guinness_price_gbp, created_at, reviewer_id, pub:pubs(id, name, slug, current_rating_tier, area)',
     )
-    .eq('reviewer_id', danielProfile.user_id)
     .eq('is_official', true)
     .order('created_at', { ascending: false });
-
-  if (!reviews) return [];
 
   type RawRow = {
     total_score: number;
     pub_id: string;
     guinness_price_gbp: number | null;
     created_at: string;
+    reviewer_id: string | null;
     pub: { id: string; name: string; slug: string; current_rating_tier: string | null; area: string } | null;
   };
+  const rows = (allReviewsRaw ?? []) as unknown as RawRow[];
 
-  const rows = reviews as unknown as RawRow[];
+  // Debug: log all distinct reviewer_id values present in reviews
+  const distinctReviewerIds = [...new Set(rows.map((r) => r.reviewer_id).filter(Boolean))];
+  console.log('[getDanielOfficialLeaderboard] reviewer_ids in official reviews:', JSON.stringify(distinctReviewerIds));
+  console.log('[getDanielOfficialLeaderboard] matching against user_id:', adminProfile.user_id, '| id:', adminProfile.id);
+
+  // Join: reviewer_id must match the admin's user_id (auth UUID).
+  // Also accept match against reviewer_profiles.id as a safety net in case
+  // the FK was set to the profile row id rather than the auth user id.
+  const adminReviews = rows.filter(
+    (r) =>
+      r.reviewer_id !== null &&
+      (r.reviewer_id === adminProfile.user_id || r.reviewer_id === adminProfile.id),
+  );
+
+  console.log('[getDanielOfficialLeaderboard] matched reviews count:', adminReviews.length);
+
+  if (!adminReviews.length) return [];
 
   // De-duplicate: keep only the latest review per pub
   const seen = new Set<string>();
   const deduped: RawRow[] = [];
-  for (const r of rows) {
+  for (const r of adminReviews) {
     if (r.pub && !seen.has(r.pub_id)) {
       seen.add(r.pub_id);
       deduped.push(r);

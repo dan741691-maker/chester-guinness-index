@@ -102,6 +102,26 @@ export async function deletePub(id: string): Promise<void> {
   if (error) throw new Error(`Failed to delete pub: ${error.message}`);
 }
 
+/**
+ * Returns the average total_score across all reviews (official + unofficial)
+ * for every pub, keyed by pub_id.
+ */
+export async function getAvgScoresPerPub(): Promise<Map<string, number>> {
+  const supabase = await createClient();
+  const { data } = await supabase.from('reviews').select('pub_id, total_score');
+  const byPub = new Map<string, number[]>();
+  for (const r of ((data ?? []) as { pub_id: string; total_score: number }[])) {
+    const arr = byPub.get(r.pub_id) ?? [];
+    arr.push(r.total_score);
+    byPub.set(r.pub_id, arr);
+  }
+  const avgMap = new Map<string, number>();
+  for (const [pubId, scores] of byPub) {
+    avgMap.set(pubId, Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10);
+  }
+  return avgMap;
+}
+
 export async function getLeaderboard() {
   const supabase = await createClient();
 

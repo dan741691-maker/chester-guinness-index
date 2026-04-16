@@ -31,10 +31,10 @@ interface ReviewFormProps {
 }
 
 const DEFAULT_SCORES = {
-  pub_ambience: 5.0,
+  pub_look_cleanliness: 5.0,
   staff: 5.0,
   glass_pour: 5.0,
-  la_pinte: 5.0,
+  taste_quality: 5.0,
   price_score: 5.0,
 };
 
@@ -74,10 +74,10 @@ export function ReviewForm({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [scores, setScores] = useState({
-    pub_ambience: review?.pub_ambience ?? DEFAULT_SCORES.pub_ambience,
+    pub_look_cleanliness: review?.pub_look_cleanliness ?? DEFAULT_SCORES.pub_look_cleanliness,
     staff: review?.staff ?? DEFAULT_SCORES.staff,
     glass_pour: review?.glass_pour ?? DEFAULT_SCORES.glass_pour,
-    la_pinte: review?.la_pinte ?? DEFAULT_SCORES.la_pinte,
+    taste_quality: review?.taste_quality ?? DEFAULT_SCORES.taste_quality,
     price_score: review?.price_score ?? DEFAULT_SCORES.price_score,
   });
 

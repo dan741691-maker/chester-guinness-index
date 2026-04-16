@@ -65,10 +65,10 @@ export interface Database {
         Row: {
           id: string;
           pub_id: string;
-          pub_ambience: number;
+          pub_look_cleanliness: number;
           staff: number;
           glass_pour: number;
-          la_pinte: number;
+          taste_quality: number;
           price_score: number;
           total_score: number;
           guinness_price_gbp: number | null;
@@ -84,10 +84,10 @@ export interface Database {
         Insert: {
           id?: string;
           pub_id: string;
-          pub_ambience: number;
+          pub_look_cleanliness: number;
           staff: number;
           glass_pour: number;
-          la_pinte: number;
+          taste_quality: number;
           price_score: number;
           guinness_price_gbp?: number | null;
           notes?: string | null;
@@ -101,10 +101,10 @@ export interface Database {
         };
         Update: {
           pub_id?: string;
-          pub_ambience?: number;
+          pub_look_cleanliness?: number;
           staff?: number;
           glass_pour?: number;
-          la_pinte?: number;
+          taste_quality?: number;
           price_score?: number;
           guinness_price_gbp?: number | null;
           notes?: string | null;

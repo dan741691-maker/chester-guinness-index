@@ -124,7 +124,7 @@ export default async function LeaderboardPage() {
                 Ranked by La Pinte score
               </p>
               <div className="space-y-2">
-                {bestTaste.map((review: { id: string; la_pinte: number; total_score: number; pub: { name: string; slug: string } }, idx: number) => (
+                {bestTaste.map((review: { id: string; taste_quality: number; total_score: number; pub: { name: string; slug: string } }, idx: number) => (
                   <Link
                     key={review.id}
                     href={`/pub/${review.pub.slug}`}
@@ -143,7 +143,7 @@ export default async function LeaderboardPage() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-2xl font-bold font-serif text-gold">
-                        {formatScore(review.la_pinte)}
+                        {formatScore(review.taste_quality)}
                         <span className="text-sm text-cream-muted/40">/10</span>
                       </p>
                       <p className="text-[10px] text-cream-muted/40 uppercase tracking-wider">La Pinte</p>

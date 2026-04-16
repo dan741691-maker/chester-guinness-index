@@ -51,10 +51,10 @@ export default async function EditReviewPage({ params }: Props) {
   const review: Review = {
     id: reviewData.id,
     pub_id: reviewData.pub_id,
-    pub_ambience: reviewData.pub_ambience,
+    pub_look_cleanliness: reviewData.pub_look_cleanliness,
     staff: reviewData.staff,
     glass_pour: reviewData.glass_pour,
-    la_pinte: reviewData.la_pinte,
+    taste_quality: reviewData.taste_quality,
     price_score: reviewData.price_score,
     total_score: reviewData.total_score,
     guinness_price_gbp: reviewData.guinness_price_gbp,

@@ -137,7 +137,7 @@ export async function getLeaderboard() {
       supabase
         .from('reviews')
         .select('*, pub:pubs(name, slug)')
-        .order('la_pinte', { ascending: false })
+        .order('taste_quality', { ascending: false })
         .eq('is_official', true)
         .limit(5),
       supabase

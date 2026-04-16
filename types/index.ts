@@ -50,7 +50,7 @@ export interface FilterState {
 }
 
 export interface ScoreCategory {
-  key: keyof Pick<Review, 'pub_ambience' | 'staff' | 'glass_pour' | 'la_pinte' | 'price_score'>;
+  key: keyof Pick<Review, 'pub_look_cleanliness' | 'staff' | 'glass_pour' | 'taste_quality' | 'price_score'>;
   label: string;
   icon: string;
 }

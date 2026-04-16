@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 const SCORE_FIELDS = [
-  'pub_ambience',
+  'pub_look_cleanliness',
   'staff',
   'glass_pour',
-  'la_pinte',
+  'taste_quality',
   'price_score',
 ] as const;
 

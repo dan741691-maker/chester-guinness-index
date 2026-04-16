@@ -75,11 +75,11 @@ Reviews have 5 sub-scores. Each is rated 1–10. `total_score` is the raw sum (m
 
 | Sub-score | Field |
 |-----------|-------|
-| Taste quality | `taste_quality` |
-| Glass & pour | `glass_pour` |
-| Atmosphere | `atmosphere` |
-| Service | `service` |
-| Price | `price_score` |
+| Pub Ambience 🍺 | `pub_ambience` |
+| Staff 🤝 | `staff` |
+| Glass 🥛 (auto-scored from M-code) | `glass_pour` |
+| La Pinte ⭐ (the Guinness itself) | `la_pinte` |
+| Price 💷 (auto-scored from price entry) | `price_score` |
 
 **Rating tiers** (from `getRatingTier` in `lib/utils.ts`):
 

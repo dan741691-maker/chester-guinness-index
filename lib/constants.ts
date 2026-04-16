@@ -63,10 +63,10 @@ export const CHESTER_AREAS = [
 ] as const;
 
 export const SCORE_CATEGORIES: ScoreCategory[] = [
-  { key: 'pub_look_cleanliness', label: 'Look & Cleanliness', icon: '✨' },
+  { key: 'pub_ambience', label: 'Pub Ambience', icon: '🍺' },
   { key: 'staff', label: 'Staff', icon: '🤝' },
-  { key: 'glass_pour', label: 'Glass / Pour', icon: '🍺' },
-  { key: 'taste_quality', label: 'Taste / Quality', icon: '👅' },
+  { key: 'glass_pour', label: 'Glass', icon: '🥛' },
+  { key: 'la_pinte', label: 'La Pinte', icon: '⭐' },
   { key: 'price_score', label: 'Price', icon: '💷' },
 ];
 

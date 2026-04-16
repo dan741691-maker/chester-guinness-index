@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { usePubs } from '@/hooks/use-pubs';
 import { PubList } from '@/components/pub/pub-list';
 import { Filters } from '@/components/pub/filters';
 import { PubDetailPanel } from '@/components/pub/pub-detail-panel';
 import { brand } from '@/lib/brand';
+import { trackEvent } from '@/lib/analytics';
 import type { PubWithLatestImage } from '@/types';
 import type { OfficialPubEntry } from '@/services/reviewers';
 
@@ -36,6 +37,49 @@ export function MapExplorer({ initialPubs, officialLeaderboard }: MapExplorerPro
     setSelectedPubId,
     selectedPub,
   } = usePubs(initialPubs);
+
+  // ── Analytics tracking ────────────────────────────────────────
+
+  // Track pub_view when detail panel opens
+  useEffect(() => {
+    if (selectedPub) {
+      trackEvent('pub_view', { pub_id: selectedPub.id, pub_name: selectedPub.name });
+    }
+  }, [selectedPub]);
+
+  // Debounce search tracking (500 ms)
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!filters.search) return;
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      trackEvent('search_query', {
+        search_query: filters.search,
+        results_count: filteredPubs.length,
+      });
+    }, 500);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [filters.search, filteredPubs.length]);
+
+  // Track area filter changes
+  const prevAreaRef = useRef(filters.area);
+  useEffect(() => {
+    if (filters.area && filters.area !== prevAreaRef.current) {
+      trackEvent('filter_area', { filter_area: filters.area });
+    }
+    prevAreaRef.current = filters.area;
+  }, [filters.area]);
+
+  // Track min-score filter changes
+  const prevScoreRef = useRef(filters.minScore);
+  useEffect(() => {
+    if (filters.minScore !== prevScoreRef.current) {
+      trackEvent('filter_score', { filter_score: String(filters.minScore) });
+      prevScoreRef.current = filters.minScore;
+    }
+  }, [filters.minScore]);
 
   // Build official pubs: look up original pub data (for images/address),
   // override current_score with Daniel's score, sort by that score.
@@ -77,6 +121,20 @@ export function MapExplorer({ initialPubs, officialLeaderboard }: MapExplorerPro
 
   const handlePubSelect = useCallback(
     (pub: PubWithLatestImage) => {
+      setSelectedPubId(pub.id);
+    },
+    [setSelectedPubId]
+  );
+
+  // Map pin tap — tracks separately from sidebar list click
+  const handleMapPinTap = useCallback(
+    (pub: PubWithLatestImage) => {
+      trackEvent('map_pin_tap', {
+        pub_id: pub.id,
+        pub_name: pub.name,
+        latitude: pub.lat,
+        longitude: pub.lng,
+      });
       setSelectedPubId(pub.id);
     },
     [setSelectedPubId]
@@ -141,7 +199,7 @@ export function MapExplorer({ initialPubs, officialLeaderboard }: MapExplorerPro
       <div className="flex-1 relative order-1 md:order-2 h-[60vh] md:h-full">
         <PubMap
           pubs={filteredPubs}
-          onPubSelect={handlePubSelect}
+          onPubSelect={handleMapPinTap}
           selectedPubId={selectedPubId}
         />
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Upload, X, ArrowLeft, Loader2 } from 'lucide-react';
@@ -19,6 +19,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { RatingBadge } from '@/components/pub/rating-badge';
 import { SCORE_CATEGORIES } from '@/lib/constants';
 import { getRatingTier, formatScore } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 import type { Pub, Review } from '@/types';
 
 interface ReviewFormProps {
@@ -30,10 +31,10 @@ interface ReviewFormProps {
 }
 
 const DEFAULT_SCORES = {
-  pub_look_cleanliness: 5.0,
+  pub_ambience: 5.0,
   staff: 5.0,
   glass_pour: 5.0,
-  taste_quality: 5.0,
+  la_pinte: 5.0,
   price_score: 5.0,
 };
 
@@ -73,16 +74,30 @@ export function ReviewForm({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [scores, setScores] = useState({
-    pub_look_cleanliness:
-      review?.pub_look_cleanliness ?? DEFAULT_SCORES.pub_look_cleanliness,
+    pub_ambience: review?.pub_ambience ?? DEFAULT_SCORES.pub_ambience,
     staff: review?.staff ?? DEFAULT_SCORES.staff,
     glass_pour: review?.glass_pour ?? DEFAULT_SCORES.glass_pour,
-    taste_quality: review?.taste_quality ?? DEFAULT_SCORES.taste_quality,
+    la_pinte: review?.la_pinte ?? DEFAULT_SCORES.la_pinte,
     price_score: review?.price_score ?? DEFAULT_SCORES.price_score,
   });
 
   const total = Math.round(Object.values(scores).reduce((a, b) => a + b, 0) * 10) / 10;
   const tier = useMemo(() => getRatingTier(total), [total]);
+
+  // Analytics: track review lifecycle (new reviews only, not edits)
+  const submittedRef = useRef(false);
+  const startTimeRef = useRef(Date.now());
+  useEffect(() => {
+    if (review) return; // editing existing, not starting fresh
+    if (pubId) trackEvent('review_started', { pub_id: pubId });
+    return () => {
+      if (!submittedRef.current && pubId) {
+        const elapsed = Math.round((Date.now() - startTimeRef.current) / 1000);
+        trackEvent('review_abandoned', { pub_id: pubId, time_on_page_seconds: elapsed });
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pubId]);
 
   const setScore = useCallback((key: keyof typeof scores, value: number) => {
     const rounded = Math.round(value * 10) / 10;
@@ -246,6 +261,8 @@ export function ReviewForm({
           }
         }
 
+        trackEvent('review_submitted', { pub_id: pubId, metadata: { score: total } });
+        submittedRef.current = true;
         toast({ title: 'Review saved', variant: 'success' });
       }
 

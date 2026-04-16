@@ -4,6 +4,7 @@ import { getDanielOfficialLeaderboard } from '@/services/reviewers';
 import { getRatingTier } from '@/lib/utils';
 import { MapExplorer } from './map-explorer';
 import { Header } from '@/components/layout/header';
+import { TrackPageView } from '@/components/layout/track-page-view';
 
 export const revalidate = 60;
 
@@ -32,6 +33,8 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
+      <TrackPageView event="homepage_view" />
+      <TrackPageView event="session_start" />
       <Header />
       <main className="flex flex-1 overflow-hidden pt-14">
         <Suspense fallback={null}>

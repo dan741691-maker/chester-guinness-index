@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { slugify } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 import type { Pub } from '@/types';
 
 interface PubFormProps {
@@ -342,6 +343,11 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
             return;
           }
           setNearbyResults(json.results);
+          trackEvent('nearby_search', {
+            latitude: latitude,
+            longitude: longitude,
+            results_count: json.results.length,
+          });
         } catch {
           toast({ title: 'Failed to find nearby pubs', variant: 'destructive' });
         } finally {
@@ -536,6 +542,10 @@ export function PubForm({ pub, onSuccess, successRedirectUrl }: PubFormProps) {
                   <button
                     type="button"
                     onClick={() => {
+                      trackEvent('nearby_pub_selected', {
+                        pub_name: r.name,
+                        metadata: { placeId: r.placeId },
+                      });
                       applyPlaceDetails(r.placeId);
                       setNearbyResults([]);
                     }}

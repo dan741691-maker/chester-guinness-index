@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, MapPin, Star, Share2, LogOut, Globe, UserCircle, Trophy } from 'lucide-react';
+import { LayoutDashboard, MapPin, Star, Share2, LogOut, Globe, UserCircle, Trophy, BarChart2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ const ALL_NAV_ITEMS = [
   { href: '/admin/reviews', label: 'Reviews', icon: Star, exact: false, adminOnly: false },
   { href: '/admin/social', label: 'Social', icon: Share2, exact: false, adminOnly: true },
   { href: '/leaderboard', label: 'Leaderboard', icon: Trophy, exact: true, adminOnly: false },
+  { href: '/admin/analytics', label: 'Analytics', icon: BarChart2, exact: false, adminOnly: true },
   { href: '/admin/profile', label: 'Profile', icon: UserCircle, exact: false, adminOnly: false },
 ];
 

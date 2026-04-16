@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { formatDate, formatScore } from '@/lib/utils';
 import { ReviewerLeaderboard } from './reviewer-leaderboard';
+import { TrackPageView } from '@/components/layout/track-page-view';
 
 export const metadata: Metadata = {
   title: 'Leaderboard',
@@ -38,6 +39,7 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="min-h-screen bg-[#080808] flex flex-col">
+      <TrackPageView event="leaderboard_view" />
       <Header />
       <main className="flex-1 pt-14">
         {/* Hero */}
@@ -60,13 +62,13 @@ export default async function LeaderboardPage() {
                 <Trophy className="h-3.5 w-3.5" /> Overall
               </TabsTrigger>
               <TabsTrigger value="taste" className="flex items-center gap-1.5">
-                <Star className="h-3.5 w-3.5" /> Taste
+                ⭐ La Pinte
               </TabsTrigger>
               <TabsTrigger value="value" className="flex items-center gap-1.5">
                 <PoundSterling className="h-3.5 w-3.5" /> Value
               </TabsTrigger>
               <TabsTrigger value="pour" className="flex items-center gap-1.5">
-                <Droplets className="h-3.5 w-3.5" /> Pour
+                🥛 Glass
               </TabsTrigger>
               <TabsTrigger value="recent" className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5" /> Recent
@@ -116,13 +118,13 @@ export default async function LeaderboardPage() {
               </div>
             </TabsContent>
 
-            {/* Best Taste */}
+            {/* Best La Pinte */}
             <TabsContent value="taste">
               <p className="text-xs text-cream-muted/40 uppercase tracking-widest mb-4">
-                Ranked by Taste / Quality score
+                Ranked by La Pinte score
               </p>
               <div className="space-y-2">
-                {bestTaste.map((review: { id: string; taste_quality: number; total_score: number; pub: { name: string; slug: string } }, idx: number) => (
+                {bestTaste.map((review: { id: string; la_pinte: number; total_score: number; pub: { name: string; slug: string } }, idx: number) => (
                   <Link
                     key={review.id}
                     href={`/pub/${review.pub.slug}`}
@@ -141,10 +143,10 @@ export default async function LeaderboardPage() {
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-2xl font-bold font-serif text-gold">
-                        {formatScore(review.taste_quality)}
+                        {formatScore(review.la_pinte)}
                         <span className="text-sm text-cream-muted/40">/10</span>
                       </p>
-                      <p className="text-[10px] text-cream-muted/40 uppercase tracking-wider">Taste</p>
+                      <p className="text-[10px] text-cream-muted/40 uppercase tracking-wider">La Pinte</p>
                     </div>
                   </Link>
                 ))}
@@ -188,10 +190,10 @@ export default async function LeaderboardPage() {
               </div>
             </TabsContent>
 
-            {/* Best Pour */}
+            {/* Best Glass */}
             <TabsContent value="pour">
               <p className="text-xs text-cream-muted/40 uppercase tracking-widest mb-4">
-                Ranked by Glass / Pour score
+                Ranked by Glass score
               </p>
               <div className="space-y-2">
                 {bestPour.map((review: { id: string; glass_pour: number; total_score: number; pub: { name: string; slug: string } }, idx: number) => (

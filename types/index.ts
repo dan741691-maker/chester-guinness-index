@@ -31,6 +31,10 @@ export interface PubWithReviews extends Pub {
 
 export interface PubWithLatestImage extends Pub {
   latest_review_image_url: string | null;
+  /** 1-based rank within the pub's area. null if outside top 10 or unranked. */
+  city_rank?: number | null;
+  /** 1-based rank across all pubs in the index. null if outside top 10 or unranked. */
+  country_rank?: number | null;
 }
 
 export interface RatingTier {

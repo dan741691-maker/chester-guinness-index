@@ -3,9 +3,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { MapPin, PoundSterling, ArrowLeft, Calendar } from 'lucide-react';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { getPubBySlug } from '@/services/pubs';
+import { getPubBySlug, getAllPubs } from '@/services/pubs';
 import { ScoreRing, ScoreBreakdown } from '@/components/pub/score-display';
 import { RatingBadge } from '@/components/pub/rating-badge';
+import { RankBadges } from '@/components/pub/rank-badge';
 import { ReviewHistory } from '@/components/pub/review-history';
 import { PhotoGallery } from '@/components/pub/photo-gallery';
 import { PubHeroImage } from '@/components/pub/pub-hero-image';
@@ -15,7 +16,7 @@ import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatDate, formatScore } from '@/lib/utils';
+import { formatDate, formatScore, computePubRanks } from '@/lib/utils';
 import { brand } from '@/lib/brand';
 
 interface Props {
@@ -47,8 +48,15 @@ export const revalidate = 30;
 
 export default async function PubPage({ params }: Props) {
   const { slug } = await params;
-  const pub = await getPubBySlug(slug);
+  const [pub, allPubs] = await Promise.all([
+    getPubBySlug(slug),
+    getAllPubs({ activeOnly: true, scoredOnly: true }),
+  ]);
   if (!pub) notFound();
+
+  // Compute rank badges for this pub
+  const rankMap = computePubRanks(allPubs);
+  const pubRanks = rankMap.get(pub.id) ?? { cityRank: null, countryRank: null };
 
   // Only show official AND published reviews publicly
   const officialReviews = pub.reviews
@@ -108,6 +116,16 @@ export default async function PubPage({ params }: Props) {
                   </span>
                 )}
               </div>
+              {(pubRanks.cityRank != null || pubRanks.countryRank != null) && (
+                <div className="mt-3">
+                  <RankBadges
+                    cityRank={pubRanks.cityRank}
+                    countryRank={pubRanks.countryRank}
+                    area={pub.area}
+                    size="md"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Score */}

@@ -10,10 +10,11 @@ import { usePubDetail } from '@/hooks/use-pub-detail';
 import { ReviewerAvatar } from './reviewer-avatar';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import type { Pub, ReviewWithReviewer } from '@/types';
+import { RankBadges } from './rank-badge';
+import type { PubWithLatestImage, ReviewWithReviewer } from '@/types';
 
 interface PubDetailPanelProps {
-  pub: Pub | null;
+  pub: PubWithLatestImage | null;
   onClose: () => void;
 }
 
@@ -45,6 +46,7 @@ export function PubDetailPanel({ pub, onClose }: PubDetailPanelProps) {
         {pub && (
           <PanelContent pub={pub} review={review} loading={loading} onClose={onClose} />
         )}
+
       </div>
 
       {/* Mobile: fixed bottom sheet */}
@@ -79,7 +81,7 @@ function PanelContent({
   loading,
   onClose,
 }: {
-  pub: Pub;
+  pub: PubWithLatestImage;
   review: ReviewWithReviewer | null;
   loading: boolean;
   onClose: () => void;
@@ -145,6 +147,14 @@ function PanelContent({
               <ScoreRing score={pub.current_score} size="default" />
               <div className="space-y-2 flex-1 min-w-0">
                 <RatingBadge score={pub.current_score} />
+                {(pub.city_rank != null || pub.country_rank != null) && (
+                  <RankBadges
+                    cityRank={pub.city_rank}
+                    countryRank={pub.country_rank}
+                    area={pub.area}
+                    size="md"
+                  />
+                )}
                 <div className="space-y-1.5">
                   {pub.guinness_price_gbp && (
                     <div className="flex items-center gap-1.5 text-sm text-cream-muted/70">

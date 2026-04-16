@@ -46,3 +46,45 @@ export function scoreColor(score: number): string {
 export function getScorePercentage(score: number, max = 50): number {
   return Math.round((score / max) * 100);
 }
+
+/**
+ * Given an array of pubs (must include id, area, current_score),
+ * returns a Map from pubId → { cityRank, countryRank }.
+ *
+ * Ranks are 1-based. Both are null when outside the top 10.
+ * Pass `topN` to change the cutoff (default 10).
+ */
+export function computePubRanks(
+  pubs: Array<{ id: string; area: string; current_score: number }>,
+  topN = 10,
+): Map<string, { cityRank: number | null; countryRank: number | null }> {
+  // Sort a copy by score descending to get country ranks
+  const sorted = [...pubs].sort((a, b) => b.current_score - a.current_score);
+
+  // Country ranks
+  const countryRankMap = new Map<string, number>();
+  sorted.forEach((pub, i) => countryRankMap.set(pub.id, i + 1));
+
+  // City ranks — group by area then sort within each area
+  const byArea = new Map<string, typeof sorted>();
+  for (const pub of sorted) {
+    const group = byArea.get(pub.area) ?? [];
+    group.push(pub);
+    byArea.set(pub.area, group);
+  }
+  const cityRankMap = new Map<string, number>();
+  for (const group of byArea.values()) {
+    group.forEach((pub, i) => cityRankMap.set(pub.id, i + 1));
+  }
+
+  const result = new Map<string, { cityRank: number | null; countryRank: number | null }>();
+  for (const pub of pubs) {
+    const cr = countryRankMap.get(pub.id) ?? null;
+    const ci = cityRankMap.get(pub.id) ?? null;
+    result.set(pub.id, {
+      countryRank: cr !== null && cr <= topN ? cr : null,
+      cityRank: ci !== null && ci <= topN ? ci : null,
+    });
+  }
+  return result;
+}

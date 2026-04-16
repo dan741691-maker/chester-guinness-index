@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { MapPin, PoundSterling } from 'lucide-react';
 import { ScoreRing } from './score-display';
 import { RatingBadge } from './rating-badge';
+import { RankBadges } from './rank-badge';
 import { cn } from '@/lib/utils';
 import type { PubWithLatestImage } from '@/types';
 
@@ -96,6 +97,16 @@ export function PubCard({ pub, rank, isSelected, onClick }: PubCardProps) {
             </span>
           )}
         </div>
+        {(pub.city_rank != null || pub.country_rank != null) && (
+          <div className="mt-1">
+            <RankBadges
+              cityRank={pub.city_rank}
+              countryRank={pub.country_rank}
+              area={pub.area}
+              size="sm"
+            />
+          </div>
+        )}
       </div>
     </div>
   );
